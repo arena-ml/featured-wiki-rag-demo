@@ -99,18 +99,18 @@ class ArticlesWithRecentChanges:
             # todays featured article
             tfa = data.get("tfa","")
             if tfa['type'] == "standard":
-                print(tfa['title'])
+                articlesList.append(tfa['title'])
         except Exception as e:
             logger.error(f"Error fetching featured article title: {e}")
-            sys.exit(1)
+            
         try:
             mostReadArticles = data.get("mostread",{})
             for article in mostReadArticles['articles']:
                 if article.get('type',"") == "standard":
-                    print(article['title'])
+                    articlesList.append(article['title'])
         except Exception as e:
             logger.error(f"Error fetching most read article titles: {e}")
-            sys.exit(1)
+            
         
         try:
             for news in data['news']:
@@ -120,7 +120,7 @@ class ArticlesWithRecentChanges:
                         articlesList.append( link['title'])
         except Exception as e:
             logger.error(f"Error fetching news article titles: {e}")
-            exit(1)
+            
         
         try:
             # on this day related articles
@@ -129,9 +129,9 @@ class ArticlesWithRecentChanges:
                 for page in pages:
                         articlesList.append(page['title'])
         except Exception as e:
-            logger.error(f"Error fetching on this day articles titles: {e}")
-            sys.exit(1)
-
+            logger.error(f"Error fetching on this day articles titles, error: {e}")
+            
+        print(*articlesList,sep='\n')
         return articlesList
     
     

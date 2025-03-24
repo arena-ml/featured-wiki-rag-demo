@@ -1,4 +1,5 @@
 einops
+requests
 faiss-cpu
 langchain
 langchain_community
