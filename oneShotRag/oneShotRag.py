@@ -63,7 +63,7 @@ try:
     model = Llama(model_path=llm_path, 
                   n_gpu_layers=-1,
                   n_threads=6, 
-                  n_ctx=36000, 
+                  n_ctx=32000, 
                   stop=["<|endoftext|>", "<|end|>"]
                   )
 except Exception as e:

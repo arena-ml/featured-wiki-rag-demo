@@ -62,7 +62,7 @@ def initialize_model(model_path):
             model_path=model_path,
             n_gpu_layers=-1,
             n_threads=6,
-            n_ctx=40000,
+            n_ctx=32000,
             verbose=True,
         )
         logging.info("Model initialized successfully")
