@@ -53,11 +53,10 @@ modelCachePath = "/app/jinv3/modelCache"
 json_file_path = "WikiRC_Q.json"
 saveVectorStoreTo = "vectorstore_index.faiss"
 
-# Verify all paths before proceeding
+# Verify important paths before proceeding
 path_checks = [
     check_path(embpath),
     check_path(json_file_path),
-    check_path(os.path.dirname(saveVectorStoreTo))  # Check if directory exists
 ]
 
 if not all(path_checks):
