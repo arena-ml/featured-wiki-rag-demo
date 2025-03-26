@@ -1,5 +1,6 @@
 einops
 requests
+diskcache
 psutil
 faiss-cpu
 langchain
