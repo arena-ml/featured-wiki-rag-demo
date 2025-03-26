@@ -42,7 +42,7 @@ modelCachePath="/app/jinv3/modelCache"
 vectorstore_path = (
     "vectorstore_index.faiss"  # .faiss is not a not a file so don't check this
 )
-inputPath="WikiRC.json"
+inputPath="WikiRC_Q.json"
 output_file_path = "WikiRC_ES.json"
 
 check_path(llm_path)
