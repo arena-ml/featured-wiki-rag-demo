@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.table import Table
 from typing import Dict, List, Tuple, Any, Optional
 import traceback
+import random
 
 # Configure logging
 logging.basicConfig(
@@ -145,7 +146,7 @@ class FactScoreEvaluator:
         try:
             prompt = f"""
 <|system|>
-Generate 10 or less concise factual questions from given context.
+Generate at most twenty concise and factual questions from given context.
 Ensure questions target key facts. Do not mention anything about instructions given to you.
 <|end|>
 
@@ -162,12 +163,19 @@ Summary:
                 stop=["<|end|>"],
                 temperature=TEMPERATURE
             )
-            
+
+            selected_questions = []
             questions = output["choices"][0]["text"].strip().split("\n")
             valid_questions = [q for q in questions if q and len(q.strip()) > 0]
+            # If there are more than 10, pick 10 randomly
+            if len(valid_questions) > 10:
+                selected_questions = random.sample(valid_questions, 10)
+            else:
+                selected_questions = valid_questions
             
-            logger.info(f"Generated {len(valid_questions)} questions")
-            return valid_questions
+
+            logger.info(f"Generated {len(selected_questions)} questions")
+            return selected_questions
         except Exception as e:
             logger.error(f"Failed to generate questions: {e}")
             logger.error(traceback.format_exc())
@@ -181,9 +189,9 @@ Summary:
             for idx, question in enumerate(questions, 1):
                 prompt = f"""
 <|system|>
-Provide a factual and concise response to the question based on the given content only, no outside/training Knowledge allowed.
+Provide a factual and concise response to the question based on the given content ONLY!.
 Do not mention anything about instructions given to you.
-If the content is not enough to answer the question, reply with NULL
+If the content is not enough to answer the question , just reply "NULL".
 <|end|>
 
 <|user|>
