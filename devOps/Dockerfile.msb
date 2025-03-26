@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
     update-alternatives --config python3 && \
     CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=all-major" \
-    pip3 install --debug --no-cache-dir --break-system-packages llama-cpp-python && \
+    pip3 install --debug --no-cache-dir --break-system-packages llama-cpp-python==0.3.8 && \
     apt-get purge -y build-essential ninja-build python3-dev && \
     apt-get autoremove -y && \
     apt-get clean -y && \
@@ -76,7 +76,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy llama-cpp libraries compiled with cuda from build local path
 COPY --from=builder /usr/local/lib/python3.12/dist-packages/llama_cpp /usr/local/lib/python3.12/dist-packages/llama_cpp
-COPY --from=builder  /usr/local/lib/python3.12/dist-packages/llama_cpp_python-0.3.7.dist-info /usr/local/lib/python3.12/dist-packages/llama_cpp_python-0.3.7.dist-info 
+COPY --from=builder  /usr/local/lib/python3.12/dist-packages/llama_cpp_python-0.3.8.dist-info /usr/local/lib/python3.12/dist-packages/llama_cpp_python-0.3.8.dist-info 
 COPY --from=builder /usr/local/lib/python3.12/dist-packages/lib /usr/local/lib/python3.12/dist-packages/lib
 COPY --from=builder /usr/local/lib/python3.12/dist-packages/include /usr/local/lib/python3.12/dist-packages/include
 
