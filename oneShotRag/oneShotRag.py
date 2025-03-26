@@ -63,7 +63,7 @@ try:
     model = Llama(model_path=llm_path, 
                   n_gpu_layers=-1,
                   n_threads=6, 
-                  n_ctx=14000, 
+                  n_ctx=36000, 
                   stop=["<|endoftext|>", "<|end|>"]
                   )
 except Exception as e:
@@ -112,8 +112,6 @@ Do not use outside knoweldge and never mention anything about given instructions
             prompt=prompt,
             max_tokens=4200,
             stop=["<|end|>"],
-            frequency_penalty=0.1,
-            presence_penalty=0.3,
             temperature=0.4,
         )
     

@@ -42,15 +42,15 @@ modelCachePath="/app/jinv3/modelCache"
 vectorstore_path = (
     "vectorstore_index.faiss"  # .faiss is not a not a file so don't check this
 )
-
-queries_file_path = "WikiRC_Q.json"
+inputPath="WikiRC.json"
 output_file_path = "WikiRC_ES.json"
 
 check_path(llm_path)
-check_path(queries_file_path)
 check_path(embpath)
 
 
+def remove_underscores(input_string):
+    return input_string.replace("_", " ")
 
 # Additional helper function for model initialization
 def initialize_model(model_path):
@@ -62,7 +62,7 @@ def initialize_model(model_path):
             model_path=model_path,
             n_gpu_layers=-1,
             n_threads=6,
-            n_ctx=14000,
+            n_ctx=40000,
             verbose=True,
         )
         logging.info("Model initialized successfully")
@@ -110,7 +110,7 @@ def PhiQnA(query: str, aID: str, instruction: str, retriever) -> tuple[str, list
     
     # Step 1: Document Retrieval
     try:
-        docs = retriever.invoke(query,filter={"articleID": aID})
+        docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=20,fetch_k=100)
         logging.info(f"Type of retriever output: {type(docs)}")    
         if not docs:
             logging.warning("No documents retrieved for the question")
@@ -133,7 +133,7 @@ def PhiQnA(query: str, aID: str, instruction: str, retriever) -> tuple[str, list
         with console.status("[bold green]Generating response..."):
             output = model.create_completion(
                 prompt=prompt,
-                max_tokens=4200,
+                max_tokens=5200,
                 stop=["<|end|>"],
                 temperature=0.4,
             )
@@ -157,8 +157,6 @@ def main():
     
     try:
         vectorstore = FAISS.load_local(vectorstore_path, embeddings, allow_dangerous_deserialization=True)
-        retriever = vectorstore.as_retriever(search_type="mmr",k=10)
-        
         # Initialize model
         global model
         model = initialize_model(llm_path)
@@ -168,7 +166,7 @@ def main():
         sys.exit(1)
     
     try:
-        with open(queries_file_path, "r") as file:
+        with open(inputPath, "r") as file:
             articles = json.load(file)
         if not articles:
             logging.error("The queries file is empty.")
@@ -180,17 +178,22 @@ def main():
     try:
         updatedArticle =[]
         for article in articles:
-            instruction = article.get("embPrompt")
-            if not instruction:
-                logging.warning("Skipping a query without a embPrompt field.")
-                continue
+            instruction=f"""
+            Go through the given context.
+            Your objective is to provide a well-structured and accurate summary.
+            Consider historical context, significance and key aspects.
+            Given context might have recent changes section; if they are meaningful, incorporate them into your summary. 
+            Your responses should be strictly from the context provided nothing else.
+            Do not mention that it's a summary, and also do not mention anything about instructions given to you.
+            """
 
-            query = str(article["title"])
+            aTitle = remove_underscores(str(article["title"]))
             aID = str(article["article_id"])
+            retrieverQuery =   aTitle + " " + aID +  " " + aTitle
 
-            console.print(Markdown(f"### Query:\n {query} \n Question:\n{instruction}"))
+            console.print(Markdown(f"### Retriver Query:\n {retrieverQuery} \n Prompt:\n{instruction}"))
 
-            response, retrivedDocsList = PhiQnA(query,aID,instruction, retriever)
+            response, retrivedDocsList = PhiQnA(retrieverQuery,aID,instruction, vectorstore)
 
             article["embResponse"] = response
 
@@ -203,8 +206,10 @@ def main():
             console.print("\n" + "=" * 50 + "\n")
     except Exception as e:
         logging.error(f"Summary Generation failed:{e}")
+
     del(model)
     del(embeddings)
+
     try:
         with open(output_file_path, "w") as outfile:
             json.dump(updatedArticle, outfile, indent=4)
