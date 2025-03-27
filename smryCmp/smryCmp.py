@@ -4,7 +4,6 @@ import re
 import os
 import requests
 import sys
-from llama_cpp import Llama
 import logging
 from rich.console import Console
 from rich.markdown import Markdown
@@ -57,13 +56,6 @@ if not isinstance(articles, list) or not articles:
     sys.exit(1)
 
 
-# Function to clean and format text
-def clean_text(text: str) -> str:
-    text = re.sub(r"==\s*(References|External links)\s*==.*", "", text, flags=re.DOTALL)
-    text = re.sub(r"\[[0-9]+\]", "", text)  # Remove citation numbers
-    text = re.sub(r"\n{2,}", "\n", text).strip()
-    return text
-
 # Function to generate summaries
 def summaryReview(article):
     sections = article.get("content", {}).get("sections", [])        
@@ -72,7 +64,9 @@ def summaryReview(article):
     oneShotReponse = article.get("oneShotSummary","")
     
     prompt = f"""
-I have written two summaries on article below: 
+I have written two summaries on article below, which summary is better
+response in a table format based on different metrics used in comparsion.
+[Article]:
 {main_text}
 
 SummaryOne:
@@ -80,18 +74,17 @@ SummaryOne:
 
 SummaryTwo:
 {oneShotReponse}
-
-which summary is better ?
 """
     
     response = requests.post(
         f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
         headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
         json={
-        "messages": [
-            {"role": "system", "content": "You are a friendly assistant"},
-            {"role": "user", "content": prompt}
-        ]
+            "messages": [
+                {"role": "system", "content": "You are a friendly assistant"},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": 3000  
         }
     )
     jsonResult = response.json()

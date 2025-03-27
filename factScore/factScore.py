@@ -146,8 +146,9 @@ class FactScoreEvaluator:
         try:
             prompt = f"""
 <|system|>
-Generate at most twenty concise and factual questions from given context.
-Ensure questions target key facts. Do not mention anything about instructions given to you.
+Give a list of concise questions seperated by a newline, from given context.
+Ensure questions target key facts. 
+Do not mention anything about instructions given to you.
 <|end|>
 
 <|user|>
