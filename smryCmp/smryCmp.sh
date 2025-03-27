@@ -9,7 +9,7 @@ log_error() {
 
 
 echo "Running the summary comparsion script"
-if ! python3 SmryCmp.py; then
+if ! python3 smryCmp.py; then
     log_error " SmryCmp.py failed to execute. Please check the script and inputs."
 fi
 
