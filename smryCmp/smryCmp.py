@@ -76,21 +76,22 @@ SummaryTwo:
 {oneShotReponse}
 """
     
-    response = requests.post(
-        f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
-        headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
-        json={
-            "messages": [
-                {"role": "system", "content": "You are a friendly assistant"},
-                {"role": "user", "content": prompt}
-            ],
-            "max_tokens": 3000  
-        }
-    )
-    jsonResult = response.json()
-    print(jsonResult)
-    response = jsonResult.get("response","")
-    return response
+    # response = requests.post(
+    #     f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+    #     headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
+    #     json={
+    #         "messages": [
+    #             {"role": "system", "content": "You are a friendly assistant"},
+    #             {"role": "user", "content": prompt}
+    #         ],
+    #         "max_tokens": 3000  
+    #     }
+    # )
+    # jsonResult = response.json()
+    # print(jsonResult)
+    # response = jsonResult.get("response","")
+    # return response
+    return ""
 
 
 

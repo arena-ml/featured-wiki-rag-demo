@@ -8,7 +8,7 @@ log_error() {
 }
 
 echo "checking required directories exist"
-if [[ ! -d ${OUTPUT_DIR}/output6/ ]]; then
+if [[ ! -d ${OUTPUT_DIR}/output5/ ]]; then
     log_error "Directory ${OUTPUT_DIR}/output5/ does not exist."
 fi
 
@@ -21,9 +21,9 @@ fi
 echo "moving output to next step"
 
 
-mv WikiRC_ESO.json ${INPUT_DIR}/input6/output5/smryCmp/
-mv factScore.json ${INPUT_DIR}/input6/output5/
+mv WikiRC_ESO.json ${INPUT_DIR}/input5/output4/smryCmp/
+mv factScore.json ${INPUT_DIR}/input5/output4/
 
 #moving only relevant part to next stage
 
-find ${INPUT_DIR}/input6/output5/ -mindepth 1 -maxdepth 1 ! -name 'factScore' -exec mv {} ${OUTPUT_DIR}/output6/ \;
+find ${INPUT_DIR}/input5/output4/ -mindepth 1 -maxdepth 1 ! -name 'factScore' -exec mv {} ${OUTPUT_DIR}/output5/ \;

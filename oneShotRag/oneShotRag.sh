@@ -8,8 +8,8 @@ log_error() {
 }
 
 echo "checking required directories exist"
-if [[ ! -d ${OUTPUT_DIR}/output5/ ]]; then
-    log_error "Directory ${OUTPUT_DIR}/output5/ does not exist."
+if [[ ! -d ${OUTPUT_DIR}/output4/ ]]; then
+    log_error "Directory ${OUTPUT_DIR}/output4/ does not exist."
 fi
 
 
@@ -18,8 +18,8 @@ if ! python3 oneShotRag.py; then
     log_error "oneShotRag failed to execute. Please check the script and inputs."
 fi
 
-mv WikiRC_ESO.json ${INPUT_DIR}/input5/output4/factScore
+mv WikiRC_ESO.json ${INPUT_DIR}/input4/output3/factScore/
 
 echo "moving output to next step"
 
-find ${INPUT_DIR}/input5/output4/ -mindepth 1 -maxdepth 1 ! -name 'oneShotRag' -exec mv {} ${OUTPUT_DIR}/output5/ \;
+find ${INPUT_DIR}/input4/output3/ -mindepth 1 -maxdepth 1 ! -name 'oneShotRag' -exec mv {} ${OUTPUT_DIR}/output4/ \;
