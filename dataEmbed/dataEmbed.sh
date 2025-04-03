@@ -26,5 +26,6 @@ echo "moving output to next step"
 # moving files to next stage folder
 mv vectorstore_index.faiss ${INPUT_DIR}/input3/output2/embRag/
 
+mv WikiRC.json  ${INPUT_DIR}/input3/output2/embRag/
 
 find ${INPUT_DIR}/input3/output2/ -mindepth 1 -maxdepth 1 ! -name 'dataEmbed' -exec mv {} ${OUTPUT_DIR}/output3/ \;
