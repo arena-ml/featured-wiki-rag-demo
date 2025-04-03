@@ -15,8 +15,8 @@ if [[ ! -d ${OUTPUT_DIR}/output1/ ]]; then
     log_error "Directory ${OUTPUT_DIR}/output1/ does not exist."
 fi
 
-if [[ ! -d  ${INPUT_DIR}/input1/phi35ragRepo/queryGen/ ]]; then
-    log_error "Directory ${INPUT_DIR}/input1/phi35ragRepo/queryGen/ does not exist."
+if [[ ! -d  ${INPUT_DIR}/input1/phi35ragRepo/dataEmbed/ ]]; then
+    log_error "Directory ${INPUT_DIR}/input1/phi35ragRepo/dataEmbed/does not exist."
 fi
 
 
@@ -27,7 +27,7 @@ if ! python3 getWikiChangesToJson.py; then
 fi
 
 
-mv WikiRC.json ${INPUT_DIR}/input1/phi35ragRepo/queryGen/ 
+mv WikiRC.json ${INPUT_DIR}/input1/phi35ragRepo/dataEmbed/
 
 #move output to sharedDir
 echo "moving output to next step"

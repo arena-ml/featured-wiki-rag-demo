@@ -50,7 +50,7 @@ def check_path(path):
 # Paths
 embpath = "/app/jinv3"
 modelCachePath = "/app/jinv3/modelCache"
-json_file_path = "WikiRC_Q.json"
+json_file_path = "WikiRC.json"
 saveVectorStoreTo = "vectorstore_index.faiss"
 
 # Verify important paths before proceeding
