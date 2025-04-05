@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 """
-Fetch Wikipedia articles with recent changes in readable format
-
-This script fetches recent changes of Wikipedia articles ,extracts article content,
-and formats the data into a structured JSON file.
+Fetch Wikipedia articles with recent changes in readable format and store in json file
 """
 
 import argparse
 import hashlib
 import json
 import logging
-import requests
-import sys
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Any
+from functools import lru_cache
+from typing import Dict, List, Optional, Any, Set
 
+import requests
 from bs4 import BeautifulSoup
 
 # Configure logging
@@ -26,13 +24,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger("fetch_wikiArticles")
 
+# Configure session for reuse
+session = requests.Session()
+session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+})
+
 
 class ArticlesWithRecentChanges:
-    """fetch Wikipedia articles  with recent changes."""
+    """Fetch Wikipedia articles with recent changes."""
 
     def __init__(self, config: Dict[str, Any]):
         """
-        Initialize  with configuration settings.
+        Initialize with configuration settings.
 
         Args:
             config: Dictionary containing configuration settings
@@ -41,8 +45,10 @@ class ArticlesWithRecentChanges:
         self.output_path = config["output_path"]
         self.api_url = "https://en.wikipedia.org/w/api.php"
         self.cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.hours)
+        self.max_workers = config.get("max_workers", 10)
 
-    def hash_to_sha512_string(self, article: str) -> Optional[str]:
+    @staticmethod
+    def hash_to_sha512_string(article: str) -> Optional[str]:
         """
         Generates a 10-character hash from a given string.
 
@@ -59,95 +65,118 @@ class ArticlesWithRecentChanges:
         hex_digest = hash_object.hexdigest()
         return hex_digest[:10]  # Return the first 10 characters
 
-    # Function to get the date for yesterday
+    @staticmethod
     def todays_date():
+        """Get today's date in UTC."""
         return datetime.now(timezone.utc)
     
-    def remove_underscores(self,input_string):
+    @staticmethod
+    def remove_underscores(input_string):
+        """Replace underscores with spaces in a string."""
         return input_string.replace("_", " ")
     
-    # Function to clean and format text
-    def clean_text(self,text: str) -> str:
-        text = re.sub(r"==\s*(References|External links)\s*==.*", "", text, flags=re.DOTALL)
-        text = re.sub(r"\[[0-9]+\]", "", text)  # Remove citation numbers
-        text = re.sub(r"\n{2,}", "\n", text).strip()
+    @staticmethod
+    def clean_text(text: str) -> str:
+        """
+        Clean and format article text.
+        
+        Args:
+            text: Raw text to clean.
+            
+        Returns:
+            Cleaned text.
+        """
+        # Compile regex patterns once for better performance
+        ref_pattern = re.compile(r"==\s*(References|External links)\s*==.*", re.DOTALL)
+        citation_pattern = re.compile(r"\[[0-9]+\]")
+        newline_pattern = re.compile(r"\n{2,}")
+        
+        # Apply patterns
+        text = ref_pattern.sub("", text)
+        text = citation_pattern.sub("", text)
+        text = newline_pattern.sub("\n", text).strip()
         return text
-    
-    def get_featuredArticlesList(self,date: datetime)->List[str]:
+
+    def get_featuredArticlesList(self, date: datetime) -> List[str]:
+        """
+        Get list of featured, most read, news and on-this-day articles.
+        
+        Args:
+            date: Date to fetch featured articles for.
+            
+        Returns:
+            List of article titles.
+        """
         url = f"https://api.wikimedia.org/feed/v1/wikipedia/en/featured/{date.year}/{date.month:02}/{date.day:02}"
         
         # Add headers to simulate a browser request
-        headers = {
-            "accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
+        headers = {"accept": "application/json"}
         
-        print(f"Fetching data from: {url}")
-        response = requests.get(url, headers=headers)
-        print(f"Response status code: {response.status_code}")
-        
-        if response.status_code != 200:
-            print(f"Failed to fetch data for {date}. Status code: {response.status_code}")
-            print(f"Response content: {response.text}")  # Print the response content for debugging
-            exit(1)
+        logger.info(f"Fetching data from: {url}")
+        try:
+            response = session.get(url, headers=headers)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to fetch data for {date}. Error: {e}")
+            return []
         
         articlesList = []
-
         data = response.json()
+        
+        # Process today's featured article
         try:
-            # get articles title
-            # todays featured article
-            tfa = data.get("tfa","")
-            if tfa['type'] == "standard":
+            tfa = data.get("tfa", "")
+            if tfa and tfa.get('type') == "standard":
                 articlesList.append(tfa['title'])
         except Exception as e:
             logger.error(f"Error fetching featured article title: {e}")
             
+        # Process most read articles
         try:
-            mostReadArticles = data.get("mostread",{})
-            for article in mostReadArticles['articles']:
-                if article.get('type',"") == "standard":
+            mostReadArticles = data.get("mostread", {})
+            for article in mostReadArticles.get('articles', []):
+                if article.get('type', "") == "standard":
                     articlesList.append(article['title'])
         except Exception as e:
             logger.error(f"Error fetching most read article titles: {e}")
             
-        
+        # Process news articles
         try:
-            for news in data['news']:
-                links = news.get("links","")
+            for news in data.get('news', []):
+                links = news.get("links", [])
                 for link in links:
-                    if link.get("type","") == "standard":
-                        articlesList.append( link['title'])
+                    if link.get("type", "") == "standard":
+                        articlesList.append(link['title'])
         except Exception as e:
             logger.error(f"Error fetching news article titles: {e}")
             
-        
+        # Process on this day articles
         try:
-            # on this day related articles
-            for otd in data["onthisday"]:
-                pages = otd['pages']
+            for otd in data.get("onthisday", []):
+                pages = otd.get('pages', [])
                 for page in pages:
-                        articlesList.append(page['title'])
+                    articlesList.append(page['title'])
         except Exception as e:
             logger.error(f"Error fetching on this day articles titles, error: {e}")
             
-        print(*articlesList,sep='\n')
+        logger.info(f"Found {len(articlesList)} featured articles")
         return articlesList
     
-    
-    def getArticleLists(self)->List[str]:
+    def getArticleLists(self) -> Set[str]:
         """
-            To get list of articles titles using featured content or
-            most viewed/edited content api.
+        Get list of articles titles using featured content or
+        most viewed/edited content API.
+        
+        Returns:
+            Set of unique article titles.
         """
-        articleTitles = []
-        tDate = datetime.now(timezone.utc)
+        tDate = self.todays_date()
         mostViewedArticles = self.get_featuredArticlesList(date=tDate)
         
-        articleTitles.extend(mostViewedArticles)
+        # Using a set for automatic deduplication
+        return set(mostViewedArticles)
 
-        return articleTitles
-
+    @lru_cache(maxsize=128)
     def fetch_article_text(self, page_title: str) -> str:
         """
         Fetches the full content of a Wikipedia article.
@@ -167,11 +196,11 @@ class ArticlesWithRecentChanges:
         }
 
         try:
-            response = requests.get(self.api_url, params=params)
+            response = session.get(self.api_url, params=params)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching article text for '{page_title}': {e}")
-            exit(1)
+            return ""
 
         data = response.json()
         pages = data.get("query", {}).get("pages", {})
@@ -203,15 +232,11 @@ class ArticlesWithRecentChanges:
         if additions:
             simplified_diff.append(f"Added: {', '.join(additions[:])}")
             
-                
         if deletions:
             simplified_diff.append(f"Removed: {', '.join(deletions[:])}")
-            
-                
 
         return "\n".join(simplified_diff) if simplified_diff else None
 
-    
     def get_recent_changes_within_timeframe(
         self, page_title: str, cutoff_time: datetime
     ) -> List[Dict[str, Any]]:
@@ -236,7 +261,7 @@ class ArticlesWithRecentChanges:
         }
 
         try:
-            response = requests.get(self.api_url, params=params)
+            response = session.get(self.api_url, params=params)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching revisions for '{page_title}': {e}")
@@ -273,62 +298,82 @@ class ArticlesWithRecentChanges:
                     )
 
         return revisions_data
+        
+    def process_article(self, article_title: str) -> Optional[Dict[str, Any]]:
+        """
+        Process a single article and collect its changes.
+        
+        Args:
+            article_title: Title of the article to process.
+            
+        Returns:
+            Article data dictionary if changes were found, None otherwise.
+        """
+        try:
+            changes = self.get_recent_changes_within_timeframe(article_title, self.cutoff_time)
+            
+            # Only return articles with changes
+            if changes:
+                article_text = self.clean_text(self.fetch_article_text(article_title))
+                article_id = self.hash_to_sha512_string(article_text)
+                formatted_title = self.remove_underscores(article_title)
+                
+                # Treat the entire article as one section
+                article_data = {
+                    "article_id": article_id,
+                    "title": formatted_title,
+                    "content": {
+                        "sections": [
+                            {
+                                "section_title": "Main Article",
+                                "text": article_text if article_text else f"Could not fetch text for '{article_title}'.",
+                                "changes": changes,
+                            }
+                        ]
+                    },
+                }
+                logger.info(f"Found {len(changes)} recent changes for '{article_title}'")
+                return article_data
+        except Exception as e:
+            logger.error(f"Error processing article '{article_title}': {e}")
+        
+        return None
 
     def storeArticles(self) -> None:
         """
-        Process all articleTitles and generate output.
+        Process all articleTitles and generate output using parallel processing.
         """
         dataset = []
-        articleTitles = []
-
-        logger.info(f"fetching articles with changes in the last {self.hours} hours")
+        
+        logger.info(f"Fetching articles with changes in the last {self.hours} hours")
         
         try:
-            logger.info(f"Fetching articles most viewed, most edited and articles linked to wikinews")
-            articleTitles = self.getArticleLists()
-            logger.info(f"Found {len(articleTitles)} articles ")
+            logger.info("Fetching most viewed, most edited and articles linked to wikinews")
+            article_titles = self.getArticleLists()
+            logger.info(f"Found {len(article_titles)} unique articles")
         except Exception as e:
             logger.error(f"Error fetching articles: {e}")
+            article_titles = set()
         
-        # Remove duplicates
-        articleTitles = list(set(articleTitles))
-        logger.info(f"Processing {len(articleTitles)} unique articles")
-        
-        # Process each article
-        for articleTitle in articleTitles:
-            try:
-                changes = self.get_recent_changes_within_timeframe(articleTitle, self.cutoff_time)
-                
-                # Only add articles with changes to the dataset
-                if changes:
-                    article_text = self.clean_text(self.fetch_article_text(articleTitle))
-
-                    article_id = self.hash_to_sha512_string(article_text)
-                    formatedTitle = self.remove_underscores(articleTitle)
-                    # Treat the entire article as one section
-                    article_data = {
-                    "article_id": article_id,  # Unique identifier based on article title
-                        "title": formatedTitle,
-                        "content": {
-                            "sections": [
-                                {
-                                    "section_title": "Main Article",
-                                    "text": article_text
-                                    if article_text
-                                    else f"Could not fetch text for '{articleTitle}'.",
-                                    "changes": changes,
-                                }
-                            ]
-                        },
-                    }
-                    dataset.append(article_data)
-                    logger.info(f"Found {len(changes)} recent changes for '{articleTitle}'")
-            except Exception as e:
-                logger.error(f"Error processing article '{articleTitle}': {e}")
+        # Process articles in parallel
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all jobs
+            future_to_article = {
+                executor.submit(self.process_article, title): title for title in article_titles
+            }
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_article):
+                article_title = future_to_article[future]
+                try:
+                    result = future.result()
+                    if result:
+                        dataset.append(result)
+                except Exception as e:
+                    logger.error(f"Error processing article '{article_title}': {e}")
         
         # Generate summary statistics
         if dataset:
-            
             # Save the dataset as JSON
             with open(self.output_path, "w") as f:
                 json.dump(dataset, f, ensure_ascii=False, indent=2)
@@ -337,10 +382,10 @@ class ArticlesWithRecentChanges:
         else:
             logger.info("No recent changes found. Dataset not created.")
 
+
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="fetches Wikipedia articles with recent changes")
-    
+    parser = argparse.ArgumentParser(description="Fetches Wikipedia articles with recent changes")
     
     parser.add_argument(
         "--hours", 
@@ -356,6 +401,13 @@ def parse_args() -> argparse.Namespace:
         help="Output JSON file path"
     )
     
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=10,
+        help="Maximum number of threads to use for parallel processing"
+    )
+    
     return parser.parse_args()
 
 
@@ -366,6 +418,7 @@ def main() -> None:
     config = {
         "hours": args.hours,
         "output_path": args.output,
+        "max_workers": args.threads,
     }
     
     wrc = ArticlesWithRecentChanges(config)
