@@ -28,13 +28,13 @@ metrics.set_meter_provider(MeterProvider(
         export_interval_millis=5000  # every 5 seconds
     )]
 ))
-meter = metrics.get_meter(__name__)
+meter = metrics.get_meter("featuredwikirag.data.embed")
 
 documents_processed = meter.create_counter("documents.processed", unit="1", description="Total documents processed")
 processing_time = meter.create_histogram("documents.processing_time", unit="s", description="Processing time per document")
 errors_count = meter.create_counter("errors.count", unit="1", description="Number of errors")
 
-document_to_chunks = meter.create_histogram("document.to.chunks",unit="1",description="number of chunks per document")
+document_to_chunks = meter.create_histogram("document.to.chunks",description="number of chunks per document")
 
 logging.basicConfig(
     level=logging.INFO,

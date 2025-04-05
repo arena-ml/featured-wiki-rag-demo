@@ -1,4 +1,4 @@
-# First Stage.  Build from CUDA development image
+# First Stage.  Build cuda supported llama cpp from CUDA development image
 FROM nvidia/cuda:12.8.0-devel-ubuntu24.04 AS builder
 
 ENV PYTHONUNBUFFERED=1 \
