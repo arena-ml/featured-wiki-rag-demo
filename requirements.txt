@@ -12,6 +12,11 @@ rich
 tqdm
 #tiktoken needed in order to for TokenTextSplitter
 tiktoken 
+#otel packages
+opentelemetry-sdk 
+opentelemetry-exporter-otlp 
+opentelemetry-instrumentation-logging
+
 
 
 
