@@ -66,7 +66,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pip3 install --debug --no-cache-dir --verbose --break-system-packages --index-url https://download.pytorch.org/whl/cu126 torch && \
     pip3 install --debug --no-cache-dir  --upgrade --break-system-packages --index-url https://pypi.org/simple -r requirements.txt && \
     curl -o /app/DeepSeek-R1-Distill-Llama-8B-Q8_0.gguf -L \
-    "https://huggingface.co/lmstudio-community/DeepSeek-R1-Distill-Llama-8B-GGUF/blob/main/DeepSeek-R1-Distill-Llama-8B-Q8_0.gguf" || \
+    "https://huggingface.co/lmstudio-community/DeepSeek-R1-Distill-Llama-8B-GGUF/resolve/main/DeepSeek-R1-Distill-Llama-8B-Q8_0.gguf" || \
     { echo "Failed to download LLM model" && exit 1; } && \
     apt-get autoremove --purge  -y && \
     apt-get clean -y && \
