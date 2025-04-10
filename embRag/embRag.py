@@ -110,7 +110,7 @@ def PhiQnA(query: str, aID: str, instruction: str, retriever) -> tuple[str, list
     
     # Step 1: Document Retrieval
     try:
-        docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=20,fetch_k=100)
+        docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=20,fetch_k=120)
         logging.info(f"Type of retriever output: {type(docs)}")    
         if not docs:
             logging.warning("No documents retrieved for the question")
@@ -189,7 +189,7 @@ def main():
 
             aTitle = remove_underscores(str(article["title"]))
             aID = str(article["article_id"])
-            retrieverQuery =   aTitle + " " + aID +  " " + aTitle
+            retrieverQuery =   aTitle  + " " + aID +  " " + aTitle + " " + aID 
 
             console.print(Markdown(f"### Retriver Query:\n {retrieverQuery} \n Prompt:\n{instruction}"))
 
