@@ -1,0 +1,10 @@
+*.json
+misc/docker_vol/
+.env
+.DS_Store
+bin/
+temp/
+config/
+app/
+lrag/
+
