@@ -47,6 +47,7 @@ class ArticlesWithRecentChanges:
         self.cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.hours)
         self.max_workers = config.get("max_workers", 10)
 
+    # Slightly improves performance (since no self binding is needed: Prevents unnecessary access to the class instance)
     @staticmethod
     def hash_to_sha512_string(article: str) -> Optional[str]:
         """

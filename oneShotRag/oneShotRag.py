@@ -120,10 +120,13 @@ Do not use outside knoweldge and never mention anything about given instructions
 
 # Process selected articles and store summaries
 for article in articles:
-    summary = generate_summary(article)
-    article["oneShotSummary"] = summary
-    console.print(Markdown(f"### Summary for {article['title']}\n{summary}"))
-    console.print("\n" + "=" * 90 + "\n")
+    embResponse = article.get("embResponse", "NULL")
+    
+    if  embResponse!= "NULL":
+        summary = generate_summary(article)
+        article["oneShotSummary"] = summary
+        console.print(Markdown(f"### Summary for {article['title']}\n{summary}"))
+        console.print("\n" + "=" * 90 + "\n")
 
 # Save updated articles with summaries
 try:
