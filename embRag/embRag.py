@@ -114,7 +114,7 @@ def PhiQnA(query: str, aID: str, instruction: str, retriever) -> tuple[str, list
         logging.info(f"Type of retriever output: {type(docs)}")    
         if not docs:
             logging.warning("No documents retrieved for the question")
-            return "No relevant documents found.", []
+            return "NULL", []
     except Exception as e:
         logging.error(f"Error during document retrieval: {e}")
         logging.error(f"Retriever type: {type(retriever)}")  # Add this to check retriever type
@@ -197,8 +197,9 @@ def main():
 
             article["embResponse"] = response
 
-            retrivedDocs= " ".join(str(doc) for doc in retrivedDocsList)
-            article["retrivedDocs"]=retrivedDocs
+            if response != "NULL":
+                retrivedDocs= " ".join(str(doc) for doc in retrivedDocsList)
+                article["retrivedDocs"]=retrivedDocs
 
             updatedArticle.append(article)
             

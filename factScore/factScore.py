@@ -391,8 +391,12 @@ Answer:
             
             for idx, article in enumerate(articles, 1):
                 self.console.print(f"\n[bold blue]Processing article {idx}/{total_articles}[/bold blue]")
-                result = self.evaluate_article(article)
-                self.results.append(result)
+                
+                embResponse = article.get("embResponse", "NULL")
+    
+                if  embResponse!= "NULL":
+                    result = self.evaluate_article(article)
+                    self.results.append(result)
                 
             self.save_results(self.config.get("outputFile"))
         except Exception as e:
