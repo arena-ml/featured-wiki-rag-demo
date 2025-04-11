@@ -45,11 +45,11 @@ ENV PYTHONUNBUFFERED=1 \
 # Copy Python dependencies list
 COPY requirements.txt requirements.txt
 COPY saveModels.py saveModels.py
-# Create model directory
-RUN mkdir -p /app/jinv3/modelCache
+
 
 # Install dependencies and immediately clean up in one layer to reduce image size
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN mkdir -p /app/jinv3/modelCache && \
+    apt-get update && apt-get install -y --no-install-recommends \
     python3.12 \
     python3-pip \
     libjpeg-dev \
