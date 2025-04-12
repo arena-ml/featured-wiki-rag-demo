@@ -16,6 +16,8 @@ tiktoken
 opentelemetry-sdk 
 opentelemetry-exporter-otlp 
 opentelemetry-instrumentation-logging
+#openLIT
+openlit
 
 
 
