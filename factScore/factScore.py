@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import logging
+import time
 import torch
 from sentence_transformers import util
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -11,6 +12,26 @@ from rich.table import Table
 from typing import Dict, List, Tuple, Any, Optional
 import traceback
 import random
+
+# OpenTelemetry Metrics Only
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
+OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+metrics.set_meter_provider(MeterProvider(
+    metric_readers=[PeriodicExportingMetricReader(
+        OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
+        export_interval_millis=5000  # every 5 seconds
+    )]
+))
+
+meter = metrics.get_meter("featuredwikirag.fact_score")
+
+questionGenerationTime = meter.create_histogram("question.generation.time", unit="s", description="time to generate question from given article")
+factScoreEvaluationTime = meter.create_histogram("factscore.evaluation.time",unit="s",description="time taken to compute factscore per article")
 
 # Configure logging
 logging.basicConfig(
@@ -346,11 +367,13 @@ Answer:
             self.console.print(f"\n[bold]Processing:[/bold] {title}")
             
             # Generate questions
+            start_time = time.time()
             questions = self.generate_questions(main_text)
             if not questions:
                 result["error"] = "Failed to generate questions"
                 return result
-            
+            questionGenerationTime.record(time.time() - start_time)
+
             # Get reference answers
             reference_answers = self.answer_from_content(main_text, questions)
             
@@ -396,8 +419,12 @@ Answer:
                 embResponse = article.get("embResponse", "NULL")
     
                 if  embResponse!= "NULL":
+                    start_time = time.time()
+
                     result = self.evaluate_article(article)
                     self.results.append(result)
+
+                    factScoreEvaluationTime.record(time.time() - start_time)
                 
             self.save_results(self.config.get("outputFile"))
         except Exception as e:

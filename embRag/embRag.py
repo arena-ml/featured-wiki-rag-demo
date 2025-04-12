@@ -2,11 +2,38 @@ import json
 import os
 import sys
 import logging
+import time
 from rich.console import Console
 from rich.markdown import Markdown
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from llama_cpp import Llama
+
+# OpenTelemetry Metrics Only
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
+OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+metrics.set_meter_provider(MeterProvider(
+    metric_readers=[PeriodicExportingMetricReader(
+        OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
+        export_interval_millis=5000  # every 5 seconds
+    )]
+))
+
+meter = metrics.get_meter("featuredwikirag.emb_rag")
+
+doc_retrieval_time = meter.create_histogram("documents.retrieval_time", unit="s", description="document retriveal time per query")
+
+empty_results_counter = meter.create_counter(
+    "zero_docs_retrieved.count",
+    description="Count of queries with zero documents retrieved",
+)
+
+summary_generation_time = meter.create_histogram("summary.generation.time",unit="s",description="time taken by llm to generate summary")
 
 # Configure Logging
 logging.basicConfig(
@@ -110,11 +137,16 @@ def PhiQnA(query: str, aID: str, instruction: str, retriever) -> tuple[str, list
     
     # Step 1: Document Retrieval
     try:
+        start_time = time.time()
         docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=40,fetch_k=150)
         logging.info(f"Type of retriever output: {type(docs)}")    
         if not docs:
+            empty_results_counter.add(1, {"query": query, "queryType": "max_marginal_relevance_search"})
+            
             logging.warning("No documents retrieved for the question")
             return "NULL", []
+        
+        doc_retrieval_time.record(time.time() - start_time)
     except Exception as e:
         logging.error(f"Error during document retrieval: {e}")
         logging.error(f"Retriever type: {type(retriever)}")  # Add this to check retriever type
@@ -131,13 +163,17 @@ def PhiQnA(query: str, aID: str, instruction: str, retriever) -> tuple[str, list
     # Step 3: LLM Response Generation
     try:
         with console.status("[bold green]Generating response..."):
+            start_time = time.time()
+
             output = model.create_completion(
                 prompt=prompt,
                 max_tokens=7200,
                 stop=["<|end|>"],
                 temperature=0.4,
             )
-            
+
+            summary_generation_time.record(time.time() - start_time)
+
         logging.info(f"Raw model output: {output}")
         response = output["choices"][0]["text"].strip()
         
@@ -194,7 +230,6 @@ def main():
             console.print(Markdown(f"### Retriver Query:\n {retrieverQuery} \n Prompt:\n{instruction}"))
 
             response, retrivedDocsList = PhiQnA(retrieverQuery,aID,instruction, vectorstore)
-
             article["embResponse"] = response
 
             if response != "NULL":

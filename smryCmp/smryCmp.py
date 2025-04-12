@@ -2,6 +2,7 @@
 import json
 import re
 import os
+import time
 import requests
 import sys
 import logging
@@ -9,6 +10,23 @@ from rich.console import Console
 from rich.markdown import Markdown
 from llama_cpp import Llama
 
+# OpenTelemetry Metrics Only
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
+OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+metrics.set_meter_provider(MeterProvider(
+    metric_readers=[PeriodicExportingMetricReader(
+        OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
+        export_interval_millis=5000  # every 5 seconds
+    )]
+))
+
+meter = metrics.get_meter("featuredwikirag.smry.rating")
+smryRatingTime = meter.create_histogram(name="smry.rating.time",unit="s",description="time taken to rate both summaries")
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -136,7 +154,12 @@ Summary-Two:
 for article in articles:
     embResponse = article.get("embResponse", "NULL")
     if  embResponse!= "NULL":
+        start_time = time.time()
+
         review = summaryReview(article)
+
+        smryRatingTime.record(time.time() - start_time)
+        
         jsonPart = extract_response(review)
         article["smryReview"] = jsonPart
         article["smryReviewProcess"] = review

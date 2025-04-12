@@ -3,10 +3,32 @@ import re
 import os
 import random
 import sys
+import time
 from llama_cpp import Llama
 import logging
 from rich.console import Console
 from rich.markdown import Markdown
+
+# OpenTelemetry Metrics Only
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
+OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+metrics.set_meter_provider(MeterProvider(
+    metric_readers=[PeriodicExportingMetricReader(
+        OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
+        export_interval_millis=5000  # every 5 seconds
+    )]
+))
+
+meter = metrics.get_meter("featuredwikirag.one_shot_rag")
+
+summary_generation_time = meter.create_histogram("summary.generation.time",unit="s",description="time taken by llm to generate summary")
+
+
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -110,12 +132,17 @@ Do not use outside knoweldge and never mention anything about given instructions
 
     try:
         with console.status("[bold green]Generating summary..."):
+            start_time = time.time()
+
             output = model.create_completion(
                 prompt=prompt,
                 max_tokens=7200,
                 stop=["<|end|>"],
                 temperature=0.4,
             )
+
+            summary_generation_time.record(time.time() - start_time)
+            
     except Exception as e:
         logging.error(f"Failed to load model: {e}")
         return "NULL"
