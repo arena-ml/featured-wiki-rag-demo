@@ -18,7 +18,7 @@ console = Console(width=120)
 articles_file_path = "WikiRC_ESO.json"
 output_file_path = "smry_rating.json"
 
-CONST_N_CTX = 30000
+CONST_N_CTX = 35000
 
 
 
@@ -116,7 +116,7 @@ Summary-Two:
                 return "input above ctx limit"
             output = model.create_completion(
                 prompt=prompt,
-                max_tokens=5200,
+                max_tokens=7200,
             )
             
         logging.info(f"Raw model output: {output}")

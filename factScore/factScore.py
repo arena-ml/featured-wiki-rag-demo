@@ -26,8 +26,9 @@ logger = logging.getLogger(__name__)
 # Constants
 CONST_CUDA = "cuda"
 CONST_MPS = "mps"
-MAX_TOKENS = 2000
+MAX_TOKENS = 4000
 TEMPERATURE = 0.4
+CONST_N_CTX=35000
 
 class FactScoreEvaluator:
     def __init__(self, config: Dict[str, str]) -> None:
@@ -116,7 +117,7 @@ class FactScoreEvaluator:
                 model_path=self.config["llm_path"], 
                 n_gpu_layers=-1, 
                 n_threads=4,
-                n_ctx=32000,
+                n_ctx=CONST_N_CTX,
                 verbose=True
             )
             logger.info("LLM initialized successfully")

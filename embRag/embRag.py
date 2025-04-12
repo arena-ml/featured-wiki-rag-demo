@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 
 console = Console(width=90)
-
+CONST_N_CTX=35000
 
 def check_path(path):
     if not os.path.exists(path):
@@ -62,7 +62,7 @@ def initialize_model(model_path):
             model_path=model_path,
             n_gpu_layers=-1,
             n_threads=6,
-            n_ctx=32000,
+            n_ctx=CONST_N_CTX,
             verbose=True,
         )
         logging.info("Model initialized successfully")
@@ -110,7 +110,7 @@ def PhiQnA(query: str, aID: str, instruction: str, retriever) -> tuple[str, list
     
     # Step 1: Document Retrieval
     try:
-        docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=20,fetch_k=120)
+        docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=40,fetch_k=150)
         logging.info(f"Type of retriever output: {type(docs)}")    
         if not docs:
             logging.warning("No documents retrieved for the question")
@@ -133,7 +133,7 @@ def PhiQnA(query: str, aID: str, instruction: str, retriever) -> tuple[str, list
         with console.status("[bold green]Generating response..."):
             output = model.create_completion(
                 prompt=prompt,
-                max_tokens=5200,
+                max_tokens=7200,
                 stop=["<|end|>"],
                 temperature=0.4,
             )
