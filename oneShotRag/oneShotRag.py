@@ -12,6 +12,8 @@ from rich.markdown import Markdown
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 console = Console(width=120)
 
+CONST_N_CTX=35000
+
 # Paths
 llm_path = "/app/Phi-3.5-mini-instruct-Q6_K.gguf"
 articles_file_path = "WikiRC_ES.json"
@@ -63,7 +65,7 @@ try:
     model = Llama(model_path=llm_path, 
                   n_gpu_layers=-1,
                   n_threads=6, 
-                  n_ctx=32000, 
+                  n_ctx=CONST_N_CTX, 
                   stop=["<|endoftext|>", "<|end|>"]
                   )
 except Exception as e:
@@ -106,14 +108,17 @@ Do not use outside knoweldge and never mention anything about given instructions
 <|assistant|>
 """
 
-    
-    with console.status("[bold green]Generating summary..."):
-        output = model.create_completion(
-            prompt=prompt,
-            max_tokens=4200,
-            stop=["<|end|>"],
-            temperature=0.4,
-        )
+    try:
+        with console.status("[bold green]Generating summary..."):
+            output = model.create_completion(
+                prompt=prompt,
+                max_tokens=7200,
+                stop=["<|end|>"],
+                temperature=0.4,
+            )
+    except Exception as e:
+        logging.error(f"Failed to load model: {e}")
+        return "NULL"
     
     response = output["choices"][0]["text"].strip()
     return response
