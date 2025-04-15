@@ -9,7 +9,6 @@ import signal
 from tqdm import tqdm
 from langchain.text_splitter import TokenTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain_ollama import OllamaEmbeddings
 

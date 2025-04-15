@@ -538,3 +538,56 @@ AttributeError: 'GenerateResponse' object has no attribute 'message'
 2025-04-14 21:43:06,073 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
 2025-04-14 21:43:06,091 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
 2025-04-14 21:43:06,107 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:16:33,336 - INFO - Loaded 12 articles from app/WikiRC_ESO.json
+2025-04-15 21:17:03,783 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:03,795 - INFO - Generated 10 questions
+2025-04-15 21:17:08,374 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 1s.
+2025-04-15 21:17:09,381 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 2s.
+2025-04-15 21:17:11,390 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 4s.
+2025-04-15 21:17:14,276 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:15,396 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 8s.
+2025-04-15 21:17:16,471 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:21,136 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:23,406 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 16s.
+2025-04-15 21:17:23,689 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:24,891 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:24,894 - INFO - Processed 5/10 questions
+2025-04-15 21:17:26,985 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:29,773 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:34,999 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:36,326 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:37,082 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:37,084 - INFO - Processed 10/10 questions
+2025-04-15 21:17:39,113 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:39,415 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 32s.
+2025-04-15 21:17:40,518 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:41,682 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:42,660 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:43,721 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:43,722 - INFO - Processed 5/10 questions
+2025-04-15 21:17:44,497 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:46,904 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:49,299 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:50,155 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:50,570 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-04-15 21:17:50,571 - INFO - Processed 10/10 questions
+2025-04-15 21:17:51,562 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,583 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,621 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,639 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,665 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,685 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,713 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,733 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,761 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,794 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,840 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,865 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,889 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,908 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,930 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:17:51,949 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2025-04-15 21:18:11,420 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 1s.
+2025-04-15 21:18:12,423 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 2s.
+2025-04-15 21:18:14,425 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 4s.
+2025-04-15 21:18:18,432 - WARNING - Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to localhost:4317, retrying in 8s.

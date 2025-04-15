@@ -5,7 +5,6 @@ psutil
 faiss-cpu
 langchain
 langchain_community
-langchain_huggingface
 ollama
 langchain-ollama
 #telemetry packages
@@ -19,6 +18,8 @@ rich
 tqdm
 #tiktoken needed in order to for TokenTextSplitter
 tiktoken 
+#NOTE:huggingface libs or langchain derived libs requires torch like heavy libs.
+# increasing docker image size.
 
 
 

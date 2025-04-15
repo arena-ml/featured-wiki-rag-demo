@@ -7,4 +7,4 @@ temp/
 config/
 app/
 lrag/
-
+*.log
