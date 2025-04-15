@@ -4,7 +4,6 @@ import sys
 import logging
 import time
 import ollama
-from langchain_huggingface import HuggingFaceEmbeddings
 from rich.console import Console
 from rich.table import Table
 from typing import Dict, List, Tuple, Any, Optional
@@ -68,7 +67,7 @@ class FactScoreEvaluator:
         self.results = []
         
 
-    def initialize_embeddings(self) -> HuggingFaceEmbeddings:
+    def initialize_embeddings(self) -> OllamaEmbeddings:
         """Initialize the embedding model."""
         try:
             embed_model = OllamaEmbeddings(model="nomic-embed-text",)

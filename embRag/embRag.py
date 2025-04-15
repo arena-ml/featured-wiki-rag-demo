@@ -5,7 +5,6 @@ import logging
 import time
 from rich.console import Console
 from rich.markdown import Markdown
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from ollama import chat,ChatResponse
 from langchain_ollama import OllamaEmbeddings
