@@ -3,15 +3,20 @@ import os
 import sys
 import logging
 import time
-import torch
-from sentence_transformers import util
+import ollama
 from langchain_huggingface import HuggingFaceEmbeddings
-from llama_cpp import Llama
 from rich.console import Console
 from rich.table import Table
 from typing import Dict, List, Tuple, Any, Optional
 import traceback
 import random
+import numpy as np
+from langchain_ollama import OllamaEmbeddings
+
+def cosine_similarity(a: list[float], b: list[float]) -> float:
+    a = np.array(a)
+    b = np.array(b)
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 # OpenTelemetry Metrics Only
 from opentelemetry import metrics
@@ -45,11 +50,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Constants
-CONST_CUDA = "cuda"
-CONST_MPS = "mps"
-MAX_TOKENS = 4000
-TEMPERATURE = 0.4
-CONST_N_CTX=35000
+CONST_MAX_TOKENS = 4000
+CONST_LLM_TEMPERATURE = 0.4
+CONST_N_CTX=14000
 
 class FactScoreEvaluator:
     def __init__(self, config: Dict[str, str]) -> None:
@@ -61,90 +64,17 @@ class FactScoreEvaluator:
         """
         self.console = Console(width=120)
         self.config = config
-        self.validate_paths()
-        self.device = self.set_device()
         self.embeddings = self.initialize_embeddings()
-        self.llm = self.initialize_llm()
         self.results = []
         
-    def validate_paths(self) -> None:
-        """Validate all required paths exist and are readable."""
-        required_paths = [
-            "embpath", 
-            "inputFile", 
-            "llm_path"
-        ]
-        
-        try:
-            for path_key in required_paths:
-                path = self.config[path_key]
-                if not os.path.exists(path):
-                    raise FileNotFoundError(f"Path not found: {path}")
-                if not os.access(path, os.R_OK):
-                    raise PermissionError(f"Path is not readable: {path}")
-                logger.info(f"Path verified: {path}")
-        except KeyError as e:
-            logger.error(f"Missing required configuration key: {e}")
-            sys.exit(1)
-        except (FileNotFoundError, PermissionError) as e:
-            logger.error(str(e))
-            sys.exit(1)
-            
-    def set_device(self) -> torch.device:
-        """Determine the best available device for computation."""
-        try:
-            if torch.cuda.is_available():
-                device = torch.device(CONST_CUDA)
-                self.console.print("[bold green]CUDA available and enabled[/bold green]")
-            elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-                device = torch.device(CONST_MPS)
-                self.console.print("[bold yellow]MPS available and enabled[/bold yellow]")
-            else:
-                device = torch.device("cpu")
-                self.console.print("[bold yellow]Only CPU available[/bold yellow]")
-            return device
-        except Exception as e:
-            logger.error(f"Error setting device: {e}")
-            logger.error(traceback.format_exc())
-            self.console.print("[bold red]Error setting device, falling back to CPU[/bold red]")
-            return torch.device("cpu")
-            
+
     def initialize_embeddings(self) -> HuggingFaceEmbeddings:
         """Initialize the embedding model."""
         try:
-            emb_model_kwargs = {
-                "device": self.device, 
-                "local_files_only": True, 
-                "trust_remote_code": True
-            }
-            
-            embed_model = HuggingFaceEmbeddings(
-                model_name=self.config["embpath"],
-                model_kwargs=emb_model_kwargs,
-                cache_folder=self.config.get("modelCachePath", "./modelCache"),
-                encode_kwargs={"convert_to_tensor": True}
-            )
-            logger.info("Embedding model initialized successfully")
+            embed_model = OllamaEmbeddings(model="nomic-embed-text",)
             return embed_model
         except Exception as e:
             logger.error(f"Failed to initialize embeddings: {e}")
-            logger.error(traceback.format_exc())
-            sys.exit(1)
-            
-    def initialize_llm(self) -> Llama:
-        """Initialize the LLM model."""
-        try:
-            llm = Llama(
-                model_path=self.config["llm_path"], 
-                n_gpu_layers=-1, 
-                n_threads=4,
-                n_ctx=CONST_N_CTX,
-                verbose=True
-            )
-            logger.info("LLM initialized successfully")
-            return llm
-        except Exception as e:
-            logger.error(f"Failed to load LLM model: {e}")
             logger.error(traceback.format_exc())
             sys.exit(1)
             
@@ -167,28 +97,25 @@ class FactScoreEvaluator:
         """Generate questions from the main text using LLM."""
         try:
             prompt = f"""
-<|system|>
-Give a list of concise questions seperated by a newline, from given context.
-Ensure questions target key facts. 
-Do not mention anything about instructions given to you.
-<|end|>
+            <|system|>
+            Give a numbered list of concise questions, targeting key facts seperated by a newline, from given context.
+            Do not mention anything about instructions given to you.
+            <|end|>
 
-<|user|>
-Summary:
-{main_text}
-<|end|>
+            <|user|>
+            Context:
+            {main_text}
+            <|end|>
 
-<|assistant|>
-"""
-            output = self.llm.create_completion(
-                prompt=prompt, 
-                max_tokens=MAX_TOKENS, 
-                stop=["<|end|>"],
-                temperature=TEMPERATURE
-            )
+            <|assistant|>
+            """
+            
+            genOpts = {"num_predict":CONST_MAX_TOKENS,"num_ctx":CONST_N_CTX,"temperature":CONST_LLM_TEMPERATURE}
+            output = ollama.generate(model='phi3.5:3.8b-mini-instruct-q8_0', prompt=prompt,options=genOpts)
 
             selected_questions = []
-            questions = output["choices"][0]["text"].strip().split("\n")
+            questions = output['response'].strip().split("\n")
+
             valid_questions = [q for q in questions if q and len(q.strip()) > 0]
             # If there are more than 10, pick 10 randomly
             if len(valid_questions) > 10:
@@ -211,30 +138,26 @@ Summary:
         try:
             for idx, question in enumerate(questions, 1):
                 prompt = f"""
-<|system|>
-Provide a factual and concise response to the question based on the given content ONLY!.
-Do not mention anything about instructions given to you.
-If the content is not enough to answer the question , just reply "NULL".
-<|end|>
+                <|system|>
+                Provide a factual and concise response to the question based on the given content ONLY!.
+                If the content is not enough to answer the question , Your response should be just one word: "NULL".
+                Do not mention anything about instructions given to you.
+                <|end|>
 
-<|user|>
-Content:
-{content}
+                <|user|>
+                Content:
+                {content}
 
-Question: 
-{question}
-Answer:
-<|end|>
+                Question: 
+                {question}
+                Answer:
+                <|end|>
 
-<|assistant|>
-"""
-                output = self.llm.create_completion(
-                    prompt=prompt, 
-                    max_tokens=MAX_TOKENS, 
-                    stop=["<|end|>"],
-                    temperature=TEMPERATURE
-                )
-                answer = output["choices"][0]["text"].strip()
+                <|assistant|>
+                """
+                genOpts = {"num_predict":CONST_MAX_TOKENS,"num_ctx":CONST_N_CTX,"temperature":CONST_LLM_TEMPERATURE}
+                output = ollama.generate(model='phi3.5:3.8b-mini-instruct-q8_0', prompt=prompt,options=genOpts)
+                answer = output['response']
                 reference_answers[question] = answer
                 
                 # Log progress
@@ -247,27 +170,24 @@ Answer:
             logger.error(traceback.format_exc())
             return reference_answers
             
-    def compute_embedding_similarity(self, text1: str, text2: str) -> float:
+    def compute_embedding_similarity(self, refAns: str, genAns: str) -> float:
         """Compute cosine similarity between embeddings of two texts."""
+        if "NULL" in genAns:
+            return 0.0
         try:
             # Generate embeddings
-            emb1 = self.embeddings.embed_query(text1)
-            emb2 = self.embeddings.embed_query(text2)
+            emb1 = self.embeddings.embed_query(refAns)
+            emb2 = self.embeddings.embed_query(genAns)
             
-            # Convert to tensors
-            tensor1 = torch.tensor(emb1)
-            tensor2 = torch.tensor(emb2)
-            
-            # Calculate similarity
-            similarity = util.pytorch_cos_sim(tensor1, tensor2).item()
+            similarity =  cosine_similarity(emb1, emb2)
             return similarity
         except Exception as e:
             logger.error(f"Failed to compute similarity: {e}")
             logger.error(traceback.format_exc())
             return 0.0
             
-    def compute_factscore(self, generated_answers: Dict[str, str], 
-                         reference_answers: Dict[str, str]) -> Tuple[float, Dict[str, float]]:
+    def compute_factscore(self,reference_answers: Dict[str, str], generated_answers: Dict[str, str], 
+                         ) -> Tuple[float, Dict[str, float]]:
         """
         Compute FactScore by comparing generated answers with reference answers.
         
@@ -285,7 +205,7 @@ Answer:
                     continue
                 
                 # Compute similarity
-                similarity = self.compute_embedding_similarity(gen_answer, ref_answer)
+                similarity = self.compute_embedding_similarity(ref_answer,gen_answer)
                 scores[question] = similarity
                 
                 # Print details
@@ -382,7 +302,7 @@ Answer:
             
             # Compute FactScore
             factscore, similarity_scores = self.compute_factscore(
-                generated_answers, reference_answers
+               reference_answers, generated_answers
             )
             
             # Create and display table
@@ -425,20 +345,13 @@ Answer:
                     self.results.append(result)
 
                     factScoreEvaluationTime.record(time.time() - start_time)
+                    sys.exit(0)
                 
             self.save_results(self.config.get("outputFile"))
         except Exception as e:
             logger.error(f"Failed during evaluation: {e}")
             logger.error(traceback.format_exc())
             self.console.print(f"[bold red]Evaluation failed: {e}[/bold red]")
-        finally:
-            try:
-                if hasattr(self, 'llm'):
-                    del(self.llm)
-                    del(self.embeddings)
-                    logger.info("LLM closed successfully")
-            except Exception as e:
-                logger.error(f"Error closing LLM: {e}")
 
 
 def main():
@@ -446,10 +359,7 @@ def main():
     try:
         # Configuration
         config = {
-            "embpath": "/app/jinv3",
-            "modelCachePath": "/app/jinv3/modelCache",
             "inputFile": "WikiRC_ESO.json",
-            "llm_path": "/app/Phi-3.5-mini-instruct-Q6_K.gguf",
             "outputFile": "factScore.json"
         }
         

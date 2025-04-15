@@ -2,10 +2,8 @@ import os
 import sys
 import json
 import time
-import torch
 import logging
 # import psutil
-import traceback
 import signal
 # import gc
 from tqdm import tqdm
@@ -13,6 +11,7 @@ from langchain.text_splitter import TokenTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
+from langchain_ollama import OllamaEmbeddings
 
 # OpenTelemetry Metrics Only
 from opentelemetry import metrics
@@ -55,45 +54,9 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
-embpath = "/app/jinv3"
-modelCachePath = "/app/jinv3/modelCache"
+
 json_file_path = "WikiRC.json"
 saveVectorStoreTo = "vectorstore_index.faiss"
-
-def set_device():
-    try:
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            logging.info(f"CUDA available: {torch.cuda.get_device_name(0)}")
-            return device
-        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-            device = torch.device("mps")
-            logging.info("MPS available")
-            return device
-        else:
-            device = torch.device("cpu")
-            logging.info("Only CPU available")
-            return device
-    except Exception as e:
-        logging.error(f"Error detecting device: {str(e)}")
-        return torch.device("cpu")
-
-deviceDetected = set_device()
-
-def initialize_embeddings():
-    try:
-        logging.info(f"Initializing embeddings model from {embpath}")
-        embeddings = HuggingFaceEmbeddings(
-            model_name=embpath, 
-            model_kwargs={"device": deviceDetected, "local_files_only": True, "trust_remote_code": True},
-            cache_folder=modelCachePath
-        )
-        logging.info("Embeddings model initialized successfully")
-        return embeddings
-    except Exception as e:
-        logging.error(f"Failed to initialize embeddings: {str(e)}")
-        errors_count.add(1)
-        sys.exit(1)
 
 def parse_json(file_path):
     try:
@@ -152,7 +115,9 @@ def process_and_index():
     start_time = time.time()
     
     try:
-        embeddings = initialize_embeddings()
+        # embeddings = initialize_embeddings()
+        embeddings = OllamaEmbeddings(model="nomic-embed-text")
+
         documents = list(parse_json(json_file_path))
         total_documents = len(documents)
         logging.info(f"Total documents to process: {total_documents}")

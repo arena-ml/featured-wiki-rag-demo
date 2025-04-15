@@ -3,12 +3,12 @@ import json
 import re
 import os
 import time
-import requests
+import ollama
 import sys
 import logging
 from rich.console import Console
 from rich.markdown import Markdown
-from llama_cpp import Llama
+
 
 # OpenTelemetry Metrics Only
 from opentelemetry import metrics
@@ -33,10 +33,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 console = Console(width=120)
 
 # Paths
-articles_file_path = "WikiRC_ESO.json"
-output_file_path = "smry_rating.json"
+articles_file_path = "app/WikiRC_ESO.json"
+output_file_path = "app/smry_rating.json"
 
-CONST_N_CTX = 35000
+CONST_N_CTX = 14500
+CONST_MAX_CTX=1000
 
 
 
@@ -61,26 +62,6 @@ def check_path(path):
 # check_path(llm_path)
 check_path(articles_file_path)
 
-def initialize_model(model_path):
-    """
-    Initialize the Llama model with proper error handling
-    """
-    try:
-        model = Llama(
-            model_path=model_path,
-            n_gpu_layers=-1,
-            n_threads=6,
-            n_ctx=CONST_N_CTX,
-            verbose=True,
-        )
-        logging.info("Model initialized successfully")
-        return model
-    except Exception as e:
-        logging.error(f"Failed to initialize model: {e}")
-        raise
-
-global model
-model = initialize_model("/app/DeepSeek-R1-Distill-Llama-8B-Q8_0.gguf")
 
 # Load articles
 try:
@@ -129,16 +110,16 @@ Summary-Two:
 """
     try:
         with console.status("[bold green]Generating response..."):
-            inTokens = model.tokenize(prompt.encode("utf-8"))
-            if len(inTokens) > CONST_N_CTX:
+            genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX}
+        
+            inTokens = ollama.embed(model="hf.co/lmstudio-community/DeepSeek-R1-Distill-Llama-8B-GGUF:Q8_0",input=prompt)
+            if inTokens.prompt_eval_count > CONST_N_CTX:
                 return "input above ctx limit"
-            output = model.create_completion(
-                prompt=prompt,
-                max_tokens=7200,
-            )
             
-        logging.info(f"Raw model output: {output}")
-        response = output["choices"][0]["text"].strip()
+            output = ollama.generate(model='hf.co/lmstudio-community/DeepSeek-R1-Distill-Llama-8B-GGUF:Q8_0', prompt=prompt,options=genOpts)
+            
+        logging.info(f"Raw model output: {output.response}")
+        response = output['response']
         
     except Exception as e:
         logging.error(f"Error during LLM response generation: {e}")
@@ -165,6 +146,7 @@ for article in articles:
         article["smryReviewProcess"] = review
         console.print(Markdown(f"### Review for summaries on  {article['title']}\n{jsonPart}"))
         console.print("\n" + "=" * 90 + "\n")
+        sys.exit(0)
 
 # Save updated articles with summaries
 try:
