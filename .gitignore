@@ -1,4 +1,5 @@
 *.json
+*.log
 misc/docker_vol/
 .env
 .DS_Store
@@ -7,4 +8,4 @@ temp/
 config/
 app/
 lrag/
-*.log
+
