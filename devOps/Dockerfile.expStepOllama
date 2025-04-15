@@ -2,30 +2,21 @@ FROM nvidia/cuda:12.8.1-base-ubuntu24.04
 
 # Set environment variables for optimization
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONOPTIMIZE=1 \
     PIP_NO_CACHE_DIR=1 \
-    FORCE_CMAKE=1 \
     KMP_DUPLICATE_LIB_OK=TRUE \
     OLLAMA_DEBUG=1 \
     PIP_INDEX_URL=https://pypi.org/simple \
-    PIP_PYPI_URL=https://pypi.org/simple \
-    LD_LIBRARY_PATH=/usr/local/lib/python3.12/dist-packages/nvidia/cublas/lib:$LD_LIBRARY_PATH
+    PIP_PYPI_URL=https://pypi.org/simple 
 
 # Copy Python dependencies list
 COPY requirements.txt requirements.txt
+COPY devOps/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Install dependencies and immediately clean up in one layer to reduce image size
-RUN mkdir -p /app/jinv3/modelCache && \
-    apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
-    libjpeg-dev \
-    zlib1g-dev \
-    libomp-dev \
-    libclblast-dev \
-    libopenblas-dev \
-    libomp-dev \
-    libgomp1 \
     wget \
     git \
     lshw \
@@ -39,9 +30,6 @@ RUN mkdir -p /app/jinv3/modelCache && \
     apt-get autoremove --purge  -y && \
     apt-get clean -y && \
     rm -rf /root/.cache/* /tmp/* /var/tmp/* /var/lib/apt/lists/*
-
-COPY devOps/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 
