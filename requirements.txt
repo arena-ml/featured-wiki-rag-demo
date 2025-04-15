@@ -6,19 +6,19 @@ faiss-cpu
 langchain
 langchain_community
 langchain_huggingface
-sentence_transformers
+ollama
+langchain-ollama
+#telemetry packages
+opentelemetry-sdk 
+opentelemetry-exporter-otlp 
+opentelemetry-instrumentation-logging
+openlit
+# misc
 bs4
 rich
 tqdm
 #tiktoken needed in order to for TokenTextSplitter
 tiktoken 
-#otel packages
-opentelemetry-sdk 
-opentelemetry-exporter-otlp 
-opentelemetry-instrumentation-logging
-#openLIT
-openlit
-
 
 
 

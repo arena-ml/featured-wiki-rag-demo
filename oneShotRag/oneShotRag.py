@@ -4,7 +4,7 @@ import os
 import random
 import sys
 import time
-from llama_cpp import Llama
+import ollama
 import logging
 from rich.console import Console
 from rich.markdown import Markdown
@@ -35,32 +35,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 console = Console(width=120)
 
 CONST_N_CTX=35000
+CONST_MAX_CTX=7200
 
 # Paths
-llm_path = "/app/Phi-3.5-mini-instruct-Q6_K.gguf"
+
 articles_file_path = "WikiRC_ES.json"
 output_file_path = "WikiRC_ESO.json"
 
-# Function to check file existence
-def check_path(path):
-    if not os.path.exists(path):
-        print(f"Error: Path not found at {path}", file=sys.stderr)
-        sys.exit(1)
-
-    if not (os.path.isfile(path) or os.path.isdir(path)):
-        print(f"Error: Path exists but is neither a file nor a directory: {path}", file=sys.stderr)
-        sys.exit(1)
-
-    if not os.access(path, os.R_OK):
-        print(f"Error: Path is not readable: {path}", file=sys.stderr)
-        sys.exit(1)
-
-    path_type = "File" if os.path.isfile(path) else "Directory"
-    print(f"{path_type} verified successfully: {path}")
-
-# Verify required files
-check_path(llm_path)
-check_path(articles_file_path)
 
 # Load articles
 try:
@@ -83,16 +64,7 @@ def clean_text(text: str) -> str:
     return text
 
 # Initialize Model
-try:
-    model = Llama(model_path=llm_path, 
-                  n_gpu_layers=-1,
-                  n_threads=6, 
-                  n_ctx=CONST_N_CTX, 
-                  stop=["<|endoftext|>", "<|end|>"]
-                  )
-except Exception as e:
-    logging.error(f"Failed to load model: {e}")
-    sys.exit(1)
+
 
 # Function to generate summaries
 def generate_summary(article):
@@ -113,33 +85,31 @@ def generate_summary(article):
             recenttChange = f"\n[Recent Changes]:\n{changesText}\n\n"
     
     prompt = f"""
-<|system|>
-Your objective is to summarize the following article in structured and accurate manner.
-Ensure to capture the main points, themes, covers key aspects, historical context and practical usage. 
-If context given mentions recent changes made into it and if them seem meaningful 
-and relvent to article incorporate them in your summary. 
-Article might have latest infomartion so don't factor in knowledge cutoff date.
-Do not use outside knoweldge and never mention anything about given instructions.
-<|end|>
+    <|system|>
+    Your objective is to summarize the following article in structured and accurate manner.
+    Ensure to capture the main points, themes, covers key aspects, historical context and practical usage. 
+    If recent changes are meaninful to whole article incorporate them in your summary. 
+    Article might have latest infomartion so don't factor in knowledge cutoff date.
+    Do not use outside knoweldge and never mention anything about given instructions.
+    <|end|>
 
-<|user|>
-{main_text}
-{recenttChange}
-<|end|>
+    <|user|>
+    Article:
+    {main_text}
+    Recent Changes:
+    {recenttChange}
+    <|end|>
 
-<|assistant|>
-"""
+    <|assistant|>
+    """
 
     try:
         with console.status("[bold green]Generating summary..."):
             start_time = time.time()
 
-            output = model.create_completion(
-                prompt=prompt,
-                max_tokens=7200,
-                stop=["<|end|>"],
-                temperature=0.4,
-            )
+            genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.4}
+            
+            output = ollama.generate(model='phi3.5:3.8b-mini-instruct-q8_0', prompt=prompt,options=genOpts)
 
             summary_generation_time.record(time.time() - start_time)
             
@@ -147,7 +117,7 @@ Do not use outside knoweldge and never mention anything about given instructions
         logging.error(f"Failed to load model: {e}")
         return "NULL"
     
-    response = output["choices"][0]["text"].strip()
+    response = output['response']
     return response
 
 # Process selected articles and store summaries
