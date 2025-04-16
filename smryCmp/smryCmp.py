@@ -146,7 +146,6 @@ for article in articles:
         article["smryReviewProcess"] = review
         console.print(Markdown(f"### Review for summaries on  {article['title']}\n{jsonPart}"))
         console.print("\n" + "=" * 90 + "\n")
-        sys.exit(0)
 
 # Save updated articles with summaries
 try:
