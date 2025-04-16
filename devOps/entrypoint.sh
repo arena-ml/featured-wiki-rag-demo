@@ -1,4 +1,6 @@
 #!/bin/bash
 
-# Start Ollama in background 
- (ollama serve > /dev/null 2>&1 &)
+(ollama serve > /proc/1/fd/1 2>/proc/1/fd/2 &)
+
+# Pass control to the command the user specified (if any)
+exec "$@"
