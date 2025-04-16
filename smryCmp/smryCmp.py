@@ -36,8 +36,8 @@ console = Console(width=120)
 articles_file_path = "WikiRC_ESO.json"
 output_file_path = "smry_rating.json"
 
-CONST_N_CTX = 14500
-CONST_MAX_CTX=1000
+CONST_N_CTX = 35000
+CONST_MAX_CTX=5000
 
 
 
