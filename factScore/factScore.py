@@ -344,7 +344,6 @@ class FactScoreEvaluator:
                     self.results.append(result)
 
                     factScoreEvaluationTime.record(time.time() - start_time)
-                    sys.exit(0)
                 
             self.save_results(self.config.get("outputFile"))
         except Exception as e:

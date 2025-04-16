@@ -196,7 +196,6 @@ def main():
             
             console.print(Markdown(f"### Response:\n{response}"))
             console.print("\n" + "=" * 50 + "\n")
-            sys.exit(0)
     except Exception as e:
         logging.error(f"Summary Generation failed:{e}")
 
