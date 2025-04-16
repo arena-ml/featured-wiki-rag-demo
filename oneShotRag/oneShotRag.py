@@ -35,7 +35,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 console = Console(width=120)
 
 CONST_N_CTX=35000
-CONST_MAX_CTX=7200
+CONST_MAX_CTX=8200
 
 # Paths
 
