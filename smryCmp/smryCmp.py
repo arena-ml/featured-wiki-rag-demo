@@ -33,8 +33,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 console = Console(width=120)
 
 # Paths
-articles_file_path = "app/WikiRC_ESO.json"
-output_file_path = "app/smry_rating.json"
+articles_file_path = "WikiRC_ESO.json"
+output_file_path = "smry_rating.json"
 
 CONST_N_CTX = 14500
 CONST_MAX_CTX=1000
