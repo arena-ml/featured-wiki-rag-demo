@@ -11,17 +11,14 @@ import traceback
 import random
 import numpy as np
 from langchain_ollama import OllamaEmbeddings
-
-def cosine_similarity(a: list[float], b: list[float]) -> float:
-    a = np.array(a)
-    b = np.array(b)
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-
 # OpenTelemetry Metrics Only
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+import openlit
+
+openlit.init()
 
 OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
@@ -52,6 +49,12 @@ logger = logging.getLogger(__name__)
 CONST_MAX_TOKENS = 4000
 CONST_LLM_TEMPERATURE = 0.4
 CONST_N_CTX=14000
+
+def cosine_similarity(a: list[float], b: list[float]) -> float:
+    a = np.array(a)
+    b = np.array(b)
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
 
 class FactScoreEvaluator:
     def __init__(self, config: Dict[str, str]) -> None:
