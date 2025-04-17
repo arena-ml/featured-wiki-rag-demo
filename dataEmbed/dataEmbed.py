@@ -11,12 +11,17 @@ from langchain.text_splitter import TokenTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 from langchain_ollama import OllamaEmbeddings
+import openlit
+
 
 # OpenTelemetry Metrics Only
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
+openlit.init()
+
 
 OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
