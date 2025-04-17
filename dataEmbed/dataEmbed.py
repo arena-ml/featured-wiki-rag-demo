@@ -20,7 +20,7 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 
-openlit.init()
+openlit.init(collect_gpu_stats=True)
 
 
 OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -97,7 +97,7 @@ def parse_json(file_path):
 
                     yield Document(
                         page_content=content,
-                        metadata={"articleID": article_id, "articleTitle": title},
+                        metadata={"articleID": article_id, "articleTitle": title,"source": "wikimedia"},
                     )
     except Exception as e:
         logging.error(f"Error parsing JSON: {str(e)}")
