@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 import re
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -46,6 +47,7 @@ class ArticlesWithRecentChanges:
         self.api_url = "https://en.wikipedia.org/w/api.php"
         self.cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.hours)
         self.max_workers = config.get("max_workers", 10)
+        self.max_articles = config.get("max_articles",10)
 
     # Slightly improves performance (since no self binding is needed: Prevents unnecessary access to the class instance)
     @staticmethod
@@ -351,9 +353,14 @@ class ArticlesWithRecentChanges:
         try:
             logger.info("Fetching most viewed, most edited and articles linked to wikinews")
             article_titles = self.getArticleLists()
-            logger.info(f"Found {len(article_titles)} unique articles")
+
+            if len(article_titles) > self.max_articles:
+                atSet = random.sample(sorted(article_titles),self.max_articles)
+                article_titles = atSet
+
+            logger.info(f"Processing {len(article_titles)} unique articles")
         except Exception as e:
-            logger.error(f"Error fetching articles: {e}")
+            logger.error(f"Error fetching articles titles: {e}")
             article_titles = set()
         
         # Process articles in parallel
@@ -408,6 +415,13 @@ def parse_args() -> argparse.Namespace:
         default=10,
         help="Maximum number of threads to use for parallel processing"
     )
+
+    parser.add_argument(
+        "--articles",
+        type=int,
+        default=5,
+        help="max number of articles to process, articles will be choosen randomly"
+    )
     
     return parser.parse_args()
 
@@ -420,6 +434,7 @@ def main() -> None:
         "hours": args.hours,
         "output_path": args.output,
         "max_workers": args.threads,
+        "max_articles":args.articles,
     }
     
     wrc = ArticlesWithRecentChanges(config)
