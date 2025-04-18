@@ -11,33 +11,32 @@ from langchain.text_splitter import TokenTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 from langchain_ollama import OllamaEmbeddings
+
+# OpenTelemetry Metrics Only
+# from opentelemetry import metrics
+# from opentelemetry.sdk.metrics import MeterProvider
+# from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+# from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 import openlit
 
 
-# OpenTelemetry Metrics Only
-from opentelemetry import metrics
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 
-openlit.init(collect_gpu_stats=True)
+OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
+openlit.init(otlp_endpoint=OTEL_COLLECTOR_ENDPOINT)
 
+# metrics.set_meter_provider(MeterProvider(
+#     metric_readers=[PeriodicExportingMetricReader(
+#         OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
+#         export_interval_millis=5000  # every 5 seconds
+#     )]
+# ))
+# meter = metrics.get_meter("featuredwikirag.data.embed")
 
-OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+# documents_processed = meter.create_counter("documents.processed", unit="1", description="Total documents processed")
+# processing_time = meter.create_histogram("documents.processing_time", unit="s", description="Processing time per document")
+# errors_count = meter.create_counter("errors.count", unit="1", description="Number of errors")
 
-metrics.set_meter_provider(MeterProvider(
-    metric_readers=[PeriodicExportingMetricReader(
-        OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
-        export_interval_millis=5000  # every 5 seconds
-    )]
-))
-meter = metrics.get_meter("featuredwikirag.data.embed")
-
-documents_processed = meter.create_counter("documents.processed", unit="1", description="Total documents processed")
-processing_time = meter.create_histogram("documents.processing_time", unit="s", description="Processing time per document")
-errors_count = meter.create_counter("errors.count", unit="1", description="Number of errors")
-
-document_to_chunks = meter.create_histogram("document.to.chunks",description="number of chunks per document")
+# document_to_chunks = meter.create_histogram("document.to.chunks",description="number of chunks per document")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -92,8 +91,8 @@ def parse_json(file_path):
                         f"Changes:\n{changes_content}\n"
                     )
 
-                    processing_time.record(time.time() - start_time)
-                    documents_processed.add(1)
+                    # processing_time.record(time.time() - start_time)
+                    # documents_processed.add(1)
 
                     yield Document(
                         page_content=content,
@@ -101,7 +100,7 @@ def parse_json(file_path):
                     )
     except Exception as e:
         logging.error(f"Error parsing JSON: {str(e)}")
-        errors_count.add(1)
+        # errors_count.add(1)
         sys.exit(1)
 
 def split_documents(documents):
@@ -111,7 +110,7 @@ def split_documents(documents):
             yield from text_splitter.split_documents([doc])
     except Exception as e:
         logging.error(f"Failed to split documents: {str(e)}")
-        errors_count.add(1)
+        # errors_count.add(1)
         sys.exit(1)
 
 def process_and_index():
@@ -134,7 +133,7 @@ def process_and_index():
 
                 try:
                     texts = list(split_documents([doc]))
-                    document_to_chunks.record(len(texts))
+                    # document_to_chunks.record(len(texts))
                     if vectorstore is None:
                         vectorstore = FAISS.from_documents(texts, embeddings)
                     else:
@@ -143,7 +142,7 @@ def process_and_index():
                     logging.info(f"Processed {idx+1}/{total_documents} documents")
                 except Exception as e:
                     logging.error(f"Error processing document: {str(e)}")
-                    errors_count.add(1)
+                    # errors_count.add(1)
                     sys.exit(1)
 
                 pbar.update(1)
@@ -153,7 +152,7 @@ def process_and_index():
             logging.info("Vector store saved successfully")
     except Exception as e:
         logging.error(f"Unexpected error: {str(e)}")
-        errors_count.add(1)
+        # errors_count.add(1)
         sys.exit(1)
     finally:
         logging.info(f"Process completed in {time.time() - start_time:.2f} seconds")
@@ -165,7 +164,7 @@ def main():
         logging.info("Indexing process completed successfully")
     except Exception as e:
         logging.error(f"Unhandled exception in main: {str(e)}")
-        errors_count.add(1)
+        # errors_count.add(1)
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -1,5 +1,8 @@
-from ollama import chat,ChatResponse
+from ollama import chat
 import ollama
+# import openlit
+
+# openlit.init(collect_gpu_stats=True)
 
 genOpts = {"num_predict":100,"num_ctx":3200}
 
@@ -17,13 +20,3 @@ tkip="\"Good American Family\" is an American drama limited series that premiere
 tokens = ollama.embed(model="phi3.5:3.8b-mini-instruct-q8_0",input=tkip)
 print(tokens.prompt_eval_count)
 
-# response: ChatResponse = chat(model='phi3.5:3.8b-mini-instruct-q8_0', messages=[
-#   {
-#     'role': 'user',
-#     'content': 'Why is the sky blue?',
-#   },
-# ])
-
-# # print(response['message']['content'])
-# # or access fields directly from the response object
-# print(response.message.content)
