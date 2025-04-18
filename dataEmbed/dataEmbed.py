@@ -22,7 +22,7 @@ import openlit
 
 
 OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
-openlit.init(otlp_endpoint=OTEL_COLLECTOR_ENDPOINT)
+openlit.init(otlp_endpoint=OTEL_COLLECTOR_ENDPOINT,collect_gpu_stats=True)
 
 # metrics.set_meter_provider(MeterProvider(
 #     metric_readers=[PeriodicExportingMetricReader(

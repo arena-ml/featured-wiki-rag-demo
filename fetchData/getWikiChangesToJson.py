@@ -358,7 +358,7 @@ class ArticlesWithRecentChanges:
                 atSet = random.sample(sorted(article_titles),self.max_articles)
                 article_titles = atSet
 
-            logger.info(f"Processing {len(article_titles)} unique articles")
+            logger.info(f"Processing {len(article_titles)} unique and randomly choosen articles")
         except Exception as e:
             logger.error(f"Error fetching articles titles: {e}")
             article_titles = set()
@@ -419,7 +419,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--articles",
         type=int,
-        default=5,
+        default=10,
         help="max number of articles to process, articles will be choosen randomly"
     )
     
