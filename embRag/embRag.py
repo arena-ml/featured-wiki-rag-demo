@@ -6,7 +6,8 @@ import time
 from rich.console import Console
 from rich.markdown import Markdown
 from langchain_community.vectorstores import FAISS
-from ollama import chat,ChatResponse
+import ollama
+# from ollama import chat,ChatResponse
 from langchain_ollama import OllamaEmbeddings
 # OpenTelemetry Metrics Only
 # from opentelemetry import metrics
@@ -16,6 +17,7 @@ from langchain_ollama import OllamaEmbeddings
 import openlit
 
 # OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
 
 # metrics.set_meter_provider(MeterProvider(
 #     metric_readers=[PeriodicExportingMetricReader(
@@ -132,7 +134,7 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
 
             genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.4}
 
-            response: ChatResponse = chat(model='phi3.5:3.8b-mini-instruct-q8_0', messages=[
+            response: ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0', messages=[
               {
                 'role': 'user',
                 'content': prompt,
