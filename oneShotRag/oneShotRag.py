@@ -1,36 +1,13 @@
 import json
 import re
-import os
-import random
 import sys
-import time
 import ollama
 import logging
 from rich.console import Console
 from rich.markdown import Markdown
-# OpenTelemetry Metrics Only
-from opentelemetry import metrics
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 import openlit
 
 openlit.init(collect_gpu_stats=True)
-
-OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-
-metrics.set_meter_provider(MeterProvider(
-    metric_readers=[PeriodicExportingMetricReader(
-        OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
-        export_interval_millis=5000  # every 5 seconds
-    )]
-))
-
-meter = metrics.get_meter("featuredwikirag.one_shot_rag")
-
-summary_generation_time = meter.create_histogram("summary.generation.time",unit="s",description="time taken by llm to generate summary")
-
-
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -107,13 +84,15 @@ def generate_summary(article):
 
     try:
         with console.status("[bold green]Generating summary..."):
-            start_time = time.time()
 
             genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.4}
-            
-            output = ollama.generate(model='phi3.5:3.8b-mini-instruct-q8_0', prompt=prompt,options=genOpts)
-
-            summary_generation_time.record(time.time() - start_time)
+            output : ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0',  messages=[
+              {
+                'role': 'user',
+                'content': prompt,
+              },
+            ],
+            options=genOpts)
             
     except Exception as e:
         logging.error(f"Failed to load model: {e}")

@@ -352,11 +352,8 @@ class ArticlesWithRecentChanges:
         
         try:
             logger.info("Fetching most viewed, most edited and articles linked to wikinews")
+            
             article_titles = self.getArticleLists()
-
-            if len(article_titles) > self.max_articles:
-                atSet = random.sample(sorted(article_titles),self.max_articles)
-                article_titles = atSet
 
             logger.info(f"Processing {len(article_titles)} unique and randomly choosen articles")
         except Exception as e:
@@ -382,6 +379,9 @@ class ArticlesWithRecentChanges:
         
         # Generate summary statistics
         if dataset:
+            if len(article_titles) > self.max_articles:
+                atSet = random.sample(dataset,self.max_articles)
+                dataset = atSet
             # Save the dataset as JSON
             with open(self.output_path, "w") as f:
                 json.dump(dataset, f, ensure_ascii=False, indent=2)
@@ -405,7 +405,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output", 
         "-o", 
-        default="WikiRC.json",
+        default="app/WikiRC.json",
         help="Output JSON file path"
     )
     

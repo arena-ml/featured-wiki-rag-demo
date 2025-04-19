@@ -1,42 +1,16 @@
 import json
-import os
 import sys
 import logging
-import time
+import langchain_community.vectorstores
 from rich.console import Console
 from rich.markdown import Markdown
-from langchain_community.vectorstores import FAISS
+import langchain_community
 import ollama
-# from ollama import chat,ChatResponse
-from langchain_ollama import OllamaEmbeddings
-# OpenTelemetry Metrics Only
-# from opentelemetry import metrics
-# from opentelemetry.sdk.metrics import MeterProvider
-# from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-# from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+import langchain_ollama 
 import openlit
 
-# OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
 
-# metrics.set_meter_provider(MeterProvider(
-#     metric_readers=[PeriodicExportingMetricReader(
-#         OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
-#         export_interval_millis=5000  # every 5 seconds
-#     )]
-# ))
-
-# meter = metrics.get_meter("featuredwikirag.emb_rag")
 openlit.init(collect_gpu_stats=True)
-
-# doc_retrieval_time = meter.create_histogram("documents.retrieval_time", unit="s", description="document retriveal time per query")
-
-# empty_results_counter = meter.create_counter(
-#     "zero_docs_retrieved.count",
-#     description="Count of queries with zero documents retrieved",
-# )
-
-# summary_generation_time = meter.create_histogram("summary.generation.time",unit="s",description="time taken by llm to generate summary")
 
 
 # Configure Logging
@@ -103,8 +77,6 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
     
     # Step 1: Document Retrieval
     try:
-        start_time = time.time()
-
         docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=40,fetch_k=200)
         logging.info(f"Type of retriever output: {type(docs)}, len_docs: {len(docs)}")    
         if not docs:
@@ -157,12 +129,12 @@ def main():
     # Initialize embeddings Model
     try:
         global embeddings
-        embeddings = embeddings = OllamaEmbeddings(model="nomic-embed-text")
+        embeddings = embeddings = langchain_ollama.OllamaEmbeddings(model="nomic-embed-text")
     except Exception as e:
         logging.error(f"Failed to initialize embeddings: {e}")
     
     try:
-        vectorstore = FAISS.load_local(vectorstore_path, embeddings, allow_dangerous_deserialization=True)
+        vectorstore = langchain_community.vectorstores.FAISS.load_local(vectorstore_path, embeddings, allow_dangerous_deserialization=True)
     except Exception as e:
         logging.error(f"Failed to load vectorstore: {e}")
         sys.exit(1)

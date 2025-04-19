@@ -1,40 +1,21 @@
-import os
-import sys
-import json
-import time
-import logging
-# import psutil
-import signal
-# import gc
-from tqdm import tqdm
-from langchain.text_splitter import TokenTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain.schema import Document
-from langchain_ollama import OllamaEmbeddings
 
-# OpenTelemetry Metrics Only
-# from opentelemetry import metrics
-# from opentelemetry.sdk.metrics import MeterProvider
-# from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-# from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+import sys
+import time
+import json
+import logging
+import signal
+import langchain.schema
+import langchain.text_splitter
+import langchain_community
+import langchain_community.vectorstores
+from tqdm import tqdm
+import langchain
+import langchain_community
+import langchain_ollama
+
 import openlit
 
 openlit.init(collect_gpu_stats=True)
-
-# OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
-# metrics.set_meter_provider(MeterProvider(
-#     metric_readers=[PeriodicExportingMetricReader(
-#         OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
-#         export_interval_millis=5000  # every 5 seconds
-#     )]
-# ))
-# meter = metrics.get_meter("featuredwikirag.data.embed")
-
-# documents_processed = meter.create_counter("documents.processed", unit="1", description="Total documents processed")
-# processing_time = meter.create_histogram("documents.processing_time", unit="s", description="Processing time per document")
-# errors_count = meter.create_counter("errors.count", unit="1", description="Number of errors")
-
-# document_to_chunks = meter.create_histogram("document.to.chunks",description="number of chunks per document")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -70,7 +51,7 @@ def parse_json(file_path):
                     logging.info("Shutdown requested during JSON parsing. Exiting.")
                     break
 
-                start_time = time.time()
+                # start_time = time.time()
                 article_id = article.get("article_id", "")
                 title = str(article.get("title", ""))
                 logging.info(f"Parsing article {article_idx} - {title}")
@@ -92,7 +73,7 @@ def parse_json(file_path):
                     # processing_time.record(time.time() - start_time)
                     # documents_processed.add(1)
 
-                    yield  Document(
+                    yield  langchain.schema.Document(
                         page_content=content,
                         metadata={"source": "https://api.wikimedia.org","articleID": article_id, "articleTitle": title},
                     )
@@ -103,11 +84,11 @@ def parse_json(file_path):
 
 def split_documents(documents):
     try:
-        text_splitter = TokenTextSplitter(chunk_size=2000, chunk_overlap=50)
+        text_splitter = langchain.text_splitter.TokenTextSplitter(chunk_size=2000, chunk_overlap=50)
         for doc in documents:
             splits = text_splitter.split_text(doc.page_content)
             for chunk in splits:
-                yield Document(
+                yield langchain.Document(
                     page_content=chunk,
                     metadata=doc.metadata  # ✅ preserve metadata
                 )
@@ -121,8 +102,7 @@ def process_and_index():
     start_time = time.time()
     
     try:
-        # embeddings = initialize_embeddings()
-        embeddings = OllamaEmbeddings(model="nomic-embed-text")
+        embeddings = langchain_ollama.OllamaEmbeddings(model="nomic-embed-text")
 
         documents = list(parse_json(json_file_path))
         total_documents = len(documents)
@@ -138,7 +118,7 @@ def process_and_index():
                     texts = list(split_documents([doc]))
                     # document_to_chunks.record(len(texts))
                     if vectorstore is None:
-                        vectorstore = FAISS.from_documents(texts, embeddings)
+                        vectorstore = langchain_community.vectorstores.FAISS.from_documents(texts, embeddings)
                     else:
                         vectorstore.add_documents(texts)
 
