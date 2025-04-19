@@ -65,7 +65,6 @@ def generate_summary(article):
             recenttChange = f"\n[Recent Changes]:\n{changesText}\n\n"
     
     prompt = f"""
-    <|user|>
     Your objective is to summarize the following article in structured and accurate manner.
     Ensure to capture the main points, themes, covers key aspects, historical context and practical usage. 
     If recent changes are meaninful to whole article incorporate them in your summary. 
@@ -76,9 +75,6 @@ def generate_summary(article):
     {main_text}
     Recent Changes:
     {recenttChange}
-    <|end|>
-
-    <|assistant|>
     """
 
     try:
