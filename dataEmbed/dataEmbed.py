@@ -94,7 +94,7 @@ def parse_json(file_path):
 
                     yield Document(
                         page_content=content,
-                        metadata={"articleID": article_id, "articleTitle": title,"source": "wikimedia"},
+                        metadata={"source": "https://api.wikimedia.org","articleID": article_id, "articleTitle": title},
                     )
     except Exception as e:
         logging.error(f"Error parsing JSON: {str(e)}")
