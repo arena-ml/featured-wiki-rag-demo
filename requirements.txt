@@ -21,6 +21,11 @@ tqdm
 tiktoken 
 #NOTE:huggingface libs or langchain derived libs requires torch like heavy libs.
 # increasing docker image size.
+#
+#needed for openlit
+psutil
+nvidia-ml-py 
+amdsmi 
 
 
 
