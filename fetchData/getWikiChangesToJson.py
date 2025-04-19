@@ -405,7 +405,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output", 
         "-o", 
-        default="app/WikiRC.json",
+        default="WikiRC.json",
         help="Output JSON file path"
     )
     
