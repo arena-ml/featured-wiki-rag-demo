@@ -47,6 +47,7 @@ def clean_text(text: str) -> str:
 
 # Function to generate summaries
 def generate_summary(article):
+    output=""
     title = article.get("title", "Unknown Title")
     sections = article.get("content", {}).get("sections", [])
     
@@ -64,15 +65,13 @@ def generate_summary(article):
             recenttChange = f"\n[Recent Changes]:\n{changesText}\n\n"
     
     prompt = f"""
-    <|system|>
+    <|user|>
     Your objective is to summarize the following article in structured and accurate manner.
     Ensure to capture the main points, themes, covers key aspects, historical context and practical usage. 
     If recent changes are meaninful to whole article incorporate them in your summary. 
     Article might have latest infomartion so don't factor in knowledge cutoff date.
     Do not use outside knoweldge and never mention anything about given instructions.
-    <|end|>
 
-    <|user|>
     Article:
     {main_text}
     Recent Changes:
@@ -98,7 +97,7 @@ def generate_summary(article):
         logging.error(f"Failed to load model: {e}")
         return "NULL"
     
-    response = output['response']
+    response = output.message.content
     return response
 
 # Process selected articles and store summaries
