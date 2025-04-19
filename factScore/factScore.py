@@ -10,29 +10,12 @@ from typing import Dict, List, Tuple, Any, Optional
 import traceback
 import random
 import numpy as np
-from langchain_ollama import OllamaEmbeddings
-# OpenTelemetry Metrics Only
-from opentelemetry import metrics
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+import langchain_ollama 
 import openlit
 
 openlit.init(collect_gpu_stats=True)
 
-OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
-metrics.set_meter_provider(MeterProvider(
-    metric_readers=[PeriodicExportingMetricReader(
-        OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
-        export_interval_millis=5000  # every 5 seconds
-    )]
-))
-
-meter = metrics.get_meter("featuredwikirag.fact_score")
-
-questionGenerationTime = meter.create_histogram("question.generation.time", unit="s", description="time to generate question from given article")
-factScoreEvaluationTime = meter.create_histogram("factscore.evaluation.time",unit="s",description="time taken to compute factscore per article")
 
 # Configure logging
 logging.basicConfig(
@@ -70,10 +53,10 @@ class FactScoreEvaluator:
         self.results = []
         
 
-    def initialize_embeddings(self) -> OllamaEmbeddings:
+    def initialize_embeddings(self) -> langchain_ollama.OllamaEmbeddings:
         """Initialize the embedding model."""
         try:
-            embed_model = OllamaEmbeddings(model="nomic-embed-text",)
+            embed_model = langchain_ollama.OllamaEmbeddings(model="nomic-embed-text",)
             return embed_model
         except Exception as e:
             logger.error(f"Failed to initialize embeddings: {e}")
@@ -99,10 +82,9 @@ class FactScoreEvaluator:
         """Generate questions from the main text using LLM."""
         try:
             prompt = f"""
-            <|system|>
+            <|user|>
             Give a numbered list of concise questions, targeting key facts seperated by a newline, from given context.
             Do not mention anything about instructions given to you.
-            <|end|>
 
             <|user|>
             Context:
@@ -112,9 +94,14 @@ class FactScoreEvaluator:
             <|assistant|>
             """
             
-            genOpts = {"num_predict":CONST_MAX_TOKENS,"num_ctx":CONST_N_CTX,"temperature":CONST_LLM_TEMPERATURE}
-            output = ollama.generate(model='phi3.5:3.8b-mini-instruct-q8_0', prompt=prompt,options=genOpts)
-
+            genOpts = {"num_predict":CONST_MAX_TOKENS,"num_ctx":CONST_N_CTX,"temperature":0.4}
+            output : ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0',  messages=[
+              {
+                'role': 'user',
+                'content': prompt,
+              },
+            ],
+            options=genOpts)
             selected_questions = []
             questions = output['response'].strip().split("\n")
 
@@ -140,13 +127,11 @@ class FactScoreEvaluator:
         try:
             for idx, question in enumerate(questions, 1):
                 prompt = f"""
-                <|system|>
+                <|user|>
                 Provide a factual and concise response to the question based on the given content ONLY!.
                 If the content is not enough to answer the question , Your response should be just one word: "NULL".
                 Do not mention anything about instructions given to you.
-                <|end|>
 
-                <|user|>
                 Content:
                 {content}
 
@@ -157,8 +142,15 @@ class FactScoreEvaluator:
 
                 <|assistant|>
                 """
-                genOpts = {"num_predict":CONST_MAX_TOKENS,"num_ctx":CONST_N_CTX,"temperature":CONST_LLM_TEMPERATURE}
-                output = ollama.generate(model='phi3.5:3.8b-mini-instruct-q8_0', prompt=prompt,options=genOpts)
+                genOpts = {"num_predict":CONST_MAX_TOKENS,"num_ctx":CONST_N_CTX,"temperature":0.4}
+                output : ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0',  messages=[
+                    {
+                        'role': 'user',
+                        'content': prompt,
+                    },
+                ],
+                options=genOpts)
+
                 answer = output['response']
                 reference_answers[question] = answer
                 
@@ -289,12 +281,12 @@ class FactScoreEvaluator:
             self.console.print(f"\n[bold]Processing:[/bold] {title}")
             
             # Generate questions
-            start_time = time.time()
+           
             questions = self.generate_questions(main_text)
             if not questions:
                 result["error"] = "Failed to generate questions"
                 return result
-            questionGenerationTime.record(time.time() - start_time)
+           
 
             # Get reference answers
             reference_answers = self.answer_from_content(main_text, questions)
@@ -341,12 +333,10 @@ class FactScoreEvaluator:
                 embResponse = article.get("embResponse", "NULL")
     
                 if  embResponse!= "NULL":
-                    start_time = time.time()
-
                     result = self.evaluate_article(article)
                     self.results.append(result)
 
-                    factScoreEvaluationTime.record(time.time() - start_time)
+                
                 
             self.save_results(self.config.get("outputFile"))
         except Exception as e:
