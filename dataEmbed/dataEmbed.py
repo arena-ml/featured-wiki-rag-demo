@@ -56,8 +56,8 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 
-json_file_path = "WikiRC.json"
-saveVectorStoreTo = "vectorstore_index.faiss"
+json_file_path = "app/WikiRC.json"
+saveVectorStoreTo = "app/nvectorstore_index.faiss"
 
 def parse_json(file_path):
     try:
@@ -92,7 +92,7 @@ def parse_json(file_path):
                     # processing_time.record(time.time() - start_time)
                     # documents_processed.add(1)
 
-                    yield Document(
+                    yield  Document(
                         page_content=content,
                         metadata={"source": "https://api.wikimedia.org","articleID": article_id, "articleTitle": title},
                     )
@@ -105,11 +105,16 @@ def split_documents(documents):
     try:
         text_splitter = TokenTextSplitter(chunk_size=2000, chunk_overlap=50)
         for doc in documents:
-            yield from text_splitter.split_documents([doc])
+            splits = text_splitter.split_text(doc.page_content)
+            for chunk in splits:
+                yield Document(
+                    page_content=chunk,
+                    metadata=doc.metadata  # ✅ preserve metadata
+                )
     except Exception as e:
         logging.error(f"Failed to split documents: {str(e)}")
-        # errors_count.add(1)
         sys.exit(1)
+
 
 def process_and_index():
     vectorstore = None
