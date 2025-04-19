@@ -57,7 +57,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 
 json_file_path = "WikiRC.json"
-saveVectorStoreTo = "nvectorstore_index.faiss"
+saveVectorStoreTo = "vectorstore_index.faiss"
 
 def parse_json(file_path):
     try:
