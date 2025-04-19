@@ -116,7 +116,7 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
 
             # summary_generation_time.record(time.time() - start_time)
 
-        logging.info(f"Raw model output: {response}")
+        logging.info(f"Raw model output: {response.message}")
 
         response = response.message.content
     except Exception as e:

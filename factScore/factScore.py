@@ -80,16 +80,11 @@ class FactScoreEvaluator:
         """Generate questions from the main text using LLM."""
         try:
             prompt = f"""
-            <|user|>
             Give a numbered list of concise questions, targeting key facts seperated by a newline, from given context.
             Do not mention anything about instructions given to you.
 
-            <|user|>
             Context:
             {main_text}
-            <|end|>
-
-            <|assistant|>
             """
             
             genOpts = {"num_predict":CONST_MAX_TOKENS,"num_ctx":CONST_N_CTX,"temperature":0.4}
@@ -126,7 +121,6 @@ class FactScoreEvaluator:
         try:
             for idx, question in enumerate(questions, 1):
                 prompt = f"""
-                <|user|>
                 Provide a factual and concise response to the question based on the given content ONLY!.
                 If the content is not enough to answer the question , Your response should be just one word: "NULL".
                 Do not mention anything about instructions given to you.
@@ -136,10 +130,6 @@ class FactScoreEvaluator:
 
                 Question: 
                 {question}
-                Answer:
-                <|end|>
-
-                <|assistant|>
                 """
                 genOpts = {"num_predict":CONST_MAX_TOKENS,"num_ctx":CONST_N_CTX,"temperature":0.4}
                 output : ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0',  messages=[
