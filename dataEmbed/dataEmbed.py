@@ -19,11 +19,9 @@ from langchain_ollama import OllamaEmbeddings
 # from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 import openlit
 
+openlit.init(collect_gpu_stats=True,disable_batch=True)
 
-
-OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
-openlit.init(otlp_endpoint=OTEL_COLLECTOR_ENDPOINT,collect_gpu_stats=True)
-
+# OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
 # metrics.set_meter_provider(MeterProvider(
 #     metric_readers=[PeriodicExportingMetricReader(
 #         OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
