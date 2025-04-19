@@ -101,7 +101,8 @@ class FactScoreEvaluator:
             ],
             options=genOpts)
             selected_questions = []
-            questions = output['response'].strip().split("\n")
+            
+            questions = output.message.content.strip().split("\n")
 
             valid_questions = [q for q in questions if q and len(q.strip()) > 0]
             # If there are more than 10, pick 10 randomly
@@ -149,7 +150,7 @@ class FactScoreEvaluator:
                 ],
                 options=genOpts)
 
-                answer = output['response']
+                answer = output.message.content
                 reference_answers[question] = answer
                 
                 # Log progress

@@ -108,8 +108,8 @@ Summary-Two:
             ],
             options=genOpts)
             
-        logging.info(f"Raw model output: {output.response}")
-        response = output['response']
+        logging.info(f"Raw model output: {output.message}")
+        response = output.message.content
         
     except Exception as e:
         logging.error(f"Error during LLM response generation: {e}")
