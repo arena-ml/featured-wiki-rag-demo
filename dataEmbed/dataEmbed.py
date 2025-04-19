@@ -19,7 +19,7 @@ from langchain_ollama import OllamaEmbeddings
 # from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 import openlit
 
-openlit.init(collect_gpu_stats=True,disable_batch=True)
+openlit.init(collect_gpu_stats=True)
 
 # OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
 # metrics.set_meter_provider(MeterProvider(
@@ -94,7 +94,7 @@ def parse_json(file_path):
 
                     yield Document(
                         page_content=content,
-                        metadata={"articleID": article_id, "articleTitle": title,"source": "wikimedia"},
+                        metadata={"source": "https://api.wikimedia.org","articleID": article_id, "articleTitle": title},
                     )
     except Exception as e:
         logging.error(f"Error parsing JSON: {str(e)}")

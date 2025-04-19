@@ -9,32 +9,32 @@ from langchain_community.vectorstores import FAISS
 from ollama import chat,ChatResponse
 from langchain_ollama import OllamaEmbeddings
 # OpenTelemetry Metrics Only
-from opentelemetry import metrics
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+# from opentelemetry import metrics
+# from opentelemetry.sdk.metrics import MeterProvider
+# from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+# from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 import openlit
 
-OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+# OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
-metrics.set_meter_provider(MeterProvider(
-    metric_readers=[PeriodicExportingMetricReader(
-        OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
-        export_interval_millis=5000  # every 5 seconds
-    )]
-))
+# metrics.set_meter_provider(MeterProvider(
+#     metric_readers=[PeriodicExportingMetricReader(
+#         OTLPMetricExporter(endpoint=OTEL_COLLECTOR_ENDPOINT),
+#         export_interval_millis=5000  # every 5 seconds
+#     )]
+# ))
 
-meter = metrics.get_meter("featuredwikirag.emb_rag")
-openlit.init(collect_gpu_stats=True,meter=meter)
+# meter = metrics.get_meter("featuredwikirag.emb_rag")
+openlit.init(collect_gpu_stats=True)
 
-doc_retrieval_time = meter.create_histogram("documents.retrieval_time", unit="s", description="document retriveal time per query")
+# doc_retrieval_time = meter.create_histogram("documents.retrieval_time", unit="s", description="document retriveal time per query")
 
-empty_results_counter = meter.create_counter(
-    "zero_docs_retrieved.count",
-    description="Count of queries with zero documents retrieved",
-)
+# empty_results_counter = meter.create_counter(
+#     "zero_docs_retrieved.count",
+#     description="Count of queries with zero documents retrieved",
+# )
 
-summary_generation_time = meter.create_histogram("summary.generation.time",unit="s",description="time taken by llm to generate summary")
+# summary_generation_time = meter.create_histogram("summary.generation.time",unit="s",description="time taken by llm to generate summary")
 
 
 # Configure Logging
@@ -106,12 +106,12 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
         docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=40,fetch_k=200)
         logging.info(f"Type of retriever output: {type(docs)}, len_docs: {len(docs)}")    
         if not docs:
-            empty_results_counter.add(1, {"query": query, "queryType": "max_marginal_relevance_search"})
+            # empty_results_counter.add(1, {"query": query, "queryType": "max_marginal_relevance_search"})
             
             logging.warning("No documents retrieved for the question")
             return "NULL", []
         
-        doc_retrieval_time.record(time.time() - start_time)
+        # doc_retrieval_time.record(time.time() - start_time)
     except Exception as e:
         logging.error(f"Error during document retrieval: {e}")
         logging.error(f"Retriever type: {type(retriever)}")  # Add this to check retriever type
@@ -128,7 +128,7 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
     # Step 3: LLM Response Generation
     try:
         with console.status("[bold green]Generating response..."):
-            start_time = time.time()
+            # start_time = time.time()
 
             genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.4}
 
@@ -140,7 +140,7 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
             ],
             options=genOpts)
 
-            summary_generation_time.record(time.time() - start_time)
+            # summary_generation_time.record(time.time() - start_time)
 
         logging.info(f"Raw model output: {response}")
 
