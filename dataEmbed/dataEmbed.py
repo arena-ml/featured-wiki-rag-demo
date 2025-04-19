@@ -72,7 +72,7 @@ def parse_json(file_path):
 
                     # processing_time.record(time.time() - start_time)
                     # documents_processed.add(1)
-
+                    
                     yield  langchain.schema.Document(
                         page_content=content,
                         metadata={"source": "https://api.wikimedia.org","articleID": article_id, "articleTitle": title},
@@ -88,7 +88,7 @@ def split_documents(documents):
         for doc in documents:
             splits = text_splitter.split_text(doc.page_content)
             for chunk in splits:
-                yield langchain.Document(
+                yield langchain.schema.Document(
                     page_content=chunk,
                     metadata=doc.metadata  # ✅ preserve metadata
                 )
