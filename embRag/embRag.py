@@ -1,8 +1,7 @@
 import json
-import os
 import sys
 import logging
-import time
+import langchain_community.vectorstores
 from rich.console import Console
 from rich.markdown import Markdown
 import langchain_community
@@ -78,8 +77,6 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
     
     # Step 1: Document Retrieval
     try:
-        start_time = time.time()
-
         docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=40,fetch_k=200)
         logging.info(f"Type of retriever output: {type(docs)}, len_docs: {len(docs)}")    
         if not docs:

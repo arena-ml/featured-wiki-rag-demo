@@ -1,9 +1,6 @@
 import json
 import re
-import os
-import random
 import sys
-import time
 import ollama
 import logging
 from rich.console import Console

@@ -1,8 +1,6 @@
 import json
-import os
 import sys
 import logging
-import time
 import ollama
 from rich.console import Console
 from rich.table import Table
