@@ -59,10 +59,15 @@ def generate_summary(article):
             recenttChange = f"\n[Recent Changes]:\n{changesText}\n\n"
     
     Prompt = f"""
-Remember to not explain your actions or make any reference to instructions below, in your response.
+Remember to not explain your actions or make any reference to requests made to you, in your response.
 Instruction: 
 Return summary of article given below with an attention-catching start.
-Summmary should incorporate historical context, key aspects and recent changes made in the article.
+Ensure to capture the following segemnts:
+- main points
+- themes
+- key aspects
+- historical context
+- recent changes made in the article.
 
 Article:
 {main_text}
@@ -76,7 +81,7 @@ Recent Changes made in the article:
     try:
         with console.status("[bold green]Generating summary..."):
             genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.6,"top_k": 40, "top_p": 0.95, "min_p": 0.05}
-            output = ollama.generate(model='gemma3:12b-it-qat',prompt=Prompt,options=genOpts)
+            output = ollama.generate(model='phi3.5:3.8b-mini-instruct-q8_0',prompt=Prompt,options=genOpts)
     except Exception as e:
         logging.error(f"Failed to load model: {e}")
         return "NULL"

@@ -80,7 +80,7 @@ def generate_summary(article):
     try:
         with console.status("[bold green]Generating summary..."):
 
-            genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.4}
+            genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.6,"top_k": 40, "top_p": 0.95, "min_p": 0.05}
             output : ollama.ChatResponse = ollama.chat(model='gemma3:12b-it-qat',  messages=[
               {
                 'role': 'user',
@@ -98,11 +98,11 @@ def generate_summary(article):
 
 # Process selected articles and store summaries
 for article in articles:
-    embResponse = article.get("embResponse", "NULL")
+    embResponse = article.get("llm1embResponse", "NULL")
     
     if  embResponse!= "NULL":
         summary = generate_summary(article)
-        article["oneShotSummary"] = summary
+        article["llm2oneShotResponse"] = summary
         console.print(Markdown(f"### Summary for {article['title']}\n{summary}"))
         console.print("\n" + "=" * 90 + "\n")
 

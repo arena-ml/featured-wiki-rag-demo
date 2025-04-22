@@ -104,7 +104,7 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
         with console.status("[bold green]Generating response..."):
             # start_time = time.time()
 
-            genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.4}
+            genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.6,"top_k": 40, "top_p": 0.95, "min_p": 0.05}
 
             response: ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0', messages=[
               {
@@ -159,7 +159,7 @@ def main():
             console.print(Markdown(f"### Retriver Query:\n {retrieverQuery}"))
 
             response, retrivedDocsList = PhiQnA(retrieverQuery, aID, vectorstore)
-            article["embResponse"] = response
+            article["llm1embResponse"] = response
 
             if response != "NULL":
                 retrivedDocs= " ".join(str(doc) for doc in retrivedDocsList)
