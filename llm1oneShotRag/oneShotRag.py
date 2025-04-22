@@ -64,16 +64,21 @@ def generate_summary(article):
             recenttChange = f"\n[Recent Changes]:\n{changesText}\n\n"
     
     prompt = f"""
-    Your objective is to summarize the following article in structured and accurate manner.
-    Ensure to capture the main points, themes, covers key aspects, historical context and practical usage. 
-    If recent changes are meaninful to whole article incorporate them in your summary. 
-    Article might have latest infomartion so don't factor in knowledge cutoff date.
-    Do not use outside knoweldge and never mention anything about given instructions.
+Remember to not explain your actions or make any reference to requests made to you, in your response.
+Instruction: 
+Return summary of article given below with an attention-catching start.
+Ensure to capture the following segemnts:
+- main points
+- themes
+- key aspects
+- historical context
+- recent changes made in the article.
 
-    Article:
-    {main_text}
-    Recent Changes:
-    {recenttChange}
+Article:
+{main_text}
+
+Recent Changes made in the article:
+{recenttChange}
     """
 
     try:
