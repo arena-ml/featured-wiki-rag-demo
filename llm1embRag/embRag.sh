@@ -18,8 +18,8 @@ if ! python3 embRag.py; then
     log_error "embRag.py failed to execute. Please check the script and inputs."
 fi
 
-mv WikiRC_ES.json ${INPUT_DIR}/input3/output2/oneShotRag/
+mv WikiRC_StepThree.json ${INPUT_DIR}/input3/output2/llm1oneShotRag/
 
 echo "moving output to next step"
 
-find ${INPUT_DIR}/input3/output2/ -mindepth 1 -maxdepth 1 ! -name 'embRag' -exec mv {} ${OUTPUT_DIR}/output3/ \;
+find ${INPUT_DIR}/input3/output2/ -mindepth 1 -maxdepth 1 ! -name 'llm1embRag' -exec mv {} ${OUTPUT_DIR}/output3/ \;

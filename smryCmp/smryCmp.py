@@ -16,11 +16,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 console = Console(width=120)
 
 # Paths
-articles_file_path = "WikiRC_ESO.json"
-output_file_path = "smry_rating.json"
+articles_file_path = "WikiRC_StepFive.json"
+output_file_path = "WikiRC_StepSix.json"
 
-CONST_N_CTX = 35000
-CONST_MAX_CTX=5000
+CONST_N_CTX = 40000
+CONST_MAX_CTX=7000
 
 
 
@@ -72,24 +72,26 @@ def extract_response(response_text):
 def summaryReview(article):
     sections = article.get("content", {}).get("sections", [])        
     main_text = sections[0].get("text", "")
-    emb_response = article.get("embResponse", "")
-    oneShotReponse = article.get("oneShotSummary","")
-    if "No relevant documents" in str(emb_response):
-        return "no camparison, embResponse is empty"
+    llm1embResponse = article.get("llm1embResponse", "")
+    llm1oneShotReponse = article.get("llm1oneShotResponse","")
+    llm2oneShotReponse = article.get("llm2oneShotResponse","")
     
     prompt = f"""
-I have given you an article and two summaries, in JSON format provide score out of ten
-for Summary-One and Summary-Two on these four metrics — Coherence, Consistency, Fluency, and Relevance.
+I have given you an article and three summaries, in JSON format provide score out of ten
+for Summary-One, Summary-Two and Summary-Three on these four metrics — Coherence, Consistency, Fluency, and Relevance.
 Your response should contain no comments, notes, or explanations.
 
 [Article]:  
 {main_text}
 
 Summary-One:  
-{emb_response}
+{llm1embResponse}
 
 Summary-Two:  
-{oneShotReponse}
+{llm1oneShotReponse}
+
+Summary-Three
+{llm2oneShotReponse}
 """
     try:
         with console.status("[bold green]Generating response..."):
@@ -123,7 +125,7 @@ Summary-Two:
 
 # Process selected articles and store summaries
 for article in articles:
-    embResponse = article.get("embResponse", "NULL")
+    embResponse = article.get("llm1embResponse", "NULL")
     if  embResponse!= "NULL":
         review = summaryReview(article)
         

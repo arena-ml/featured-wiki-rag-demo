@@ -18,8 +18,8 @@ CONST_MAX_CTX=8200
 
 # Paths
 
-articles_file_path = "WikiRC_ES.json"
-output_file_path = "WikiRC_ESO.json"
+articles_file_path = "WikiRC_StepFour.json"
+output_file_path = "WikiRC_StepFive.json"
 
 
 # Load articles
@@ -65,23 +65,28 @@ def generate_summary(article):
             recenttChange = f"\n[Recent Changes]:\n{changesText}\n\n"
     
     prompt = f"""
-    Your objective is to summarize the following article in structured and accurate manner.
-    Ensure to capture the main points, themes, covers key aspects, historical context and practical usage. 
-    If recent changes are meaninful to whole article incorporate them in your summary. 
-    Article might have latest infomartion so don't factor in knowledge cutoff date.
-    Do not use outside knoweldge and never mention anything about given instructions.
+Remember to not explain your actions or make any reference to requests made to you, in your response.
+Instruction: 
+Return summary of article given below with an attention-catching start.
+Ensure to capture the following segemnts:
+- main points
+- themes
+- key aspects
+- historical context
+- recent changes made in the article.
 
-    Article:
-    {main_text}
-    Recent Changes:
-    {recenttChange}
+Article:
+{main_text}
+
+Recent Changes made in the article:
+{recenttChange}
     """
 
     try:
         with console.status("[bold green]Generating summary..."):
 
-            genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.4}
-            output : ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0',  messages=[
+            genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.6,"top_k": 40, "top_p": 0.95, "min_p": 0.05}
+            output : ollama.ChatResponse = ollama.chat(model='gemma3:12b-it-qat',  messages=[
               {
                 'role': 'user',
                 'content': prompt,
@@ -98,11 +103,11 @@ def generate_summary(article):
 
 # Process selected articles and store summaries
 for article in articles:
-    embResponse = article.get("embResponse", "NULL")
+    embResponse = article.get("llm1embResponse", "NULL")
     
     if  embResponse!= "NULL":
         summary = generate_summary(article)
-        article["oneShotSummary"] = summary
+        article["llm2oneShotResponse"] = summary
         console.print(Markdown(f"### Summary for {article['title']}\n{summary}"))
         console.print("\n" + "=" * 90 + "\n")
 
