@@ -29,8 +29,8 @@ CONST_MAX_CTX=8200
 vectorstore_path = (
     "vectorstore_index.faiss"  # .faiss is not a not a file so don't check this
 )
-inputPath="WikiRC.json"
-output_file_path = "WikiRC_ES.json"
+inputPath="WikiRC_StepTwo.json"
+output_file_path = "WikiRC_StepThree.json"
 
 
 

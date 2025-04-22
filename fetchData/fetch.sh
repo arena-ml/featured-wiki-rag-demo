@@ -27,7 +27,7 @@ if ! python3 getWikiChangesToJson.py; then
 fi
 
 
-mv WikiRC.json ${INPUT_DIR}/input1/phi35ragRepo/dataEmbed/
+mv WikiRC_StepOne.json ${INPUT_DIR}/input1/phi35ragRepo/dataEmbed/
 
 #move output to sharedDir
 echo "moving output to next step"

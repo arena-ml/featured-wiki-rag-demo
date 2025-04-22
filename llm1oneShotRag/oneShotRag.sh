@@ -18,7 +18,7 @@ if ! python3 oneShotRag.py; then
     log_error "oneShotRag failed to execute. Please check the script and inputs."
 fi
 
-mv WikiRC_ESO.json ${INPUT_DIR}/input4/output3/llm1oneShotRag/
+mv WikiRC_StepFour.json ${INPUT_DIR}/input4/output3/llm1oneShotRag/
 
 echo "moving output to next step"
 

@@ -17,9 +17,8 @@ CONST_N_CTX=35000
 CONST_MAX_CTX=8200
 
 # Paths
-
-articles_file_path = "WikiRC_ES.json"
-output_file_path = "WikiRC_ESO.json"
+articles_file_path = "WikiRC_StepThree.json"
+output_file_path = "WikiRC_StepFour.json"
 
 
 # Load articles

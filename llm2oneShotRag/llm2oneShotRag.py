@@ -18,8 +18,8 @@ CONST_MAX_CTX=8200
 
 # Paths
 
-articles_file_path = "WikiRC_ES.json"
-output_file_path = "WikiRC_ESO.json"
+articles_file_path = "WikiRC_StepFour.json"
+output_file_path = "WikiRC_StepFive.json"
 
 
 # Load articles
@@ -81,7 +81,7 @@ def generate_summary(article):
         with console.status("[bold green]Generating summary..."):
 
             genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.4}
-            output : ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0',  messages=[
+            output : ollama.ChatResponse = ollama.chat(model='gemma3:12b-it-qat',  messages=[
               {
                 'role': 'user',
                 'content': prompt,
