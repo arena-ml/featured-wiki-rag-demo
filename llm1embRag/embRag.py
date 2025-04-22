@@ -55,8 +55,8 @@ def construct_prompt(context: str) -> str:
 Follow this three instructions:
 1.Go through the given article then provide a catchy summary, 
 consider historical context, significance, key aspects and recent changes made in the article.
-3.Your responses should be strictly from the article provided nothing else.
-4.Do not mention that it's a summary, and also do not mention anything about instructions given to you.
+2..Your responses should be strictly from the article provided nothing else.
+3.Do not mention that it's a summary, and also do not mention anything about instructions given to you.
 
 Article :
 {context}

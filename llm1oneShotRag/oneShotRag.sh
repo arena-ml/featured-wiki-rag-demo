@@ -18,8 +18,8 @@ if ! python3 oneShotRag.py; then
     log_error "oneShotRag failed to execute. Please check the script and inputs."
 fi
 
-mv WikiRC_ESO.json ${INPUT_DIR}/input4/output3/factScore/
+mv WikiRC_ESO.json ${INPUT_DIR}/input4/output3/llm1oneShotRag/
 
 echo "moving output to next step"
 
-find ${INPUT_DIR}/input4/output3/ -mindepth 1 -maxdepth 1 ! -name 'oneShotRag' -exec mv {} ${OUTPUT_DIR}/output4/ \;
+find ${INPUT_DIR}/input4/output3/ -mindepth 1 -maxdepth 1 ! -name 'llm1oneShotRag' -exec mv {} ${OUTPUT_DIR}/output4/ \;
