@@ -7,14 +7,14 @@ log_error() {
     exit 1
 }
 
-echo "checking required directories exist"
-if [[ ! -d ${INPUT_DIR}/input2/output1/embRag/ ]]; then
-    log_error "Directory ${INPUT_DIR}/input2/output1/embRag/ does not exist."
-fi
+# echo "checking required directories exist"
+# if [[ ! -d ${INPUT_DIR}/input2/output1/embRag/ ]]; then
+#     log_error "Directory ${INPUT_DIR}/input2/output1/embRag/ does not exist."
+# fi
 
-if [[ ! -d ${OUTPUT_DIR}/output2/ ]]; then
-    log_error "Directory ${OUTPUT_DIR}/output2/ does not exist."
-fi
+# if [[ ! -d ${OUTPUT_DIR}/output2/ ]]; then
+#     log_error "Directory ${OUTPUT_DIR}/output2/ does not exist."
+# fi
 
 echo "# Running the dataEmbed.py"
 if ! python3 dataEmbed.py; then

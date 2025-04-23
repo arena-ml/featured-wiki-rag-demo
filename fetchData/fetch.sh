@@ -8,16 +8,16 @@ log_error() {
 }
 
 
-echo "checking required directories exist"
+# echo "checking required directories exist"
 
-# Ensure the next step directories exist
-if [[ ! -d ${OUTPUT_DIR}/output1/ ]]; then
-    log_error "Directory ${OUTPUT_DIR}/output1/ does not exist."
-fi
+# # Ensure the next step directories exist
+# if [[ ! -d ${OUTPUT_DIR}/output1/ ]]; then
+#     log_error "Directory ${OUTPUT_DIR}/output1/ does not exist."
+# fi
 
-if [[ ! -d  ${INPUT_DIR}/input1/phi35ragRepo/dataEmbed/ ]]; then
-    log_error "Directory ${INPUT_DIR}/input1/phi35ragRepo/dataEmbed/does not exist."
-fi
+# if [[ ! -d  ${INPUT_DIR}/input1/phi35ragRepo/dataEmbed/ ]]; then
+#     log_error "Directory ${INPUT_DIR}/input1/phi35ragRepo/dataEmbed/does not exist."
+# fi
 
 
 # Run the data preparation script
