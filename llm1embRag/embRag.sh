@@ -7,10 +7,10 @@ log_error() {
     exit 1
 }
 
-echo "checking required directories exist"
-if [[ ! -d ${OUTPUT_DIR}/output3/ ]]; then
-    log_error "Directory ${OUTPUT_DIR}/output3/ does not exist."
-fi
+# echo "checking required directories exist"
+# if [[ ! -d ${OUTPUT_DIR}/output3/ ]]; then
+#     log_error "Directory ${OUTPUT_DIR}/output3/ does not exist."
+# fi
 
 
 echo "# Running the embRag.py"
