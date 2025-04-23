@@ -81,7 +81,7 @@ Recent Changes made in the article:
     try:
         with console.status("[bold green]Generating summary..."):
             genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.6,"top_k": 40, "top_p": 0.95, "min_p": 0.05}
-            output = ollama.generate(model='phi3.5:3.8b-mini-instruct-q8_0',prompt=Prompt,options=genOpts)
+            output = ollama.generate(model='cogito:3b-v1-preview-llama-q8_0',prompt=Prompt,options=genOpts)
     except Exception as e:
         logging.error(f"Failed to load model: {e}")
         return "NULL"
