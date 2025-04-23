@@ -13,15 +13,15 @@ log_error() {
 # fi
 
 
-echo "# Running the factScore.py"
+echo "# Running the llm2oneShotRag.py.py"
 if ! python3 llm2oneShotRag.py; then
-    log_error "factScore failed to execute. Please check the script and inputs."
+    log_error "llm2oneShotRag.py failed to execute. Please check the script and inputs."
 fi
 
 echo "moving output to next step"
 
 
-mv WikiRC__StepFive.json ${INPUT_DIR}/input5/output4/smryCmp/
+mv WikiRC_StepFive.json ${INPUT_DIR}/input5/output4/smryCmp/
 
 #moving only relevant part to next stage
 
