@@ -19,4 +19,4 @@ echo "moving output to next step"
 
 
 #moving only relevant part to next stage
-mv ${INPUT_DIR}/input6/output5/smryCmp/ ${OUTPUT_DIR}/output6/
+mv "${INPUT_DIR}"/input6/output5/auto-rater/ "${OUTPUT_DIR}"/output6/

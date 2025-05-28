@@ -13,13 +13,13 @@ log_error() {
 # fi
 
 
-echo "# Running the embRag.py"
-if ! python3 embRag.py; then
-    log_error "embRag.py failed to execute. Please check the script and inputs."
+echo "# Running the llm1-RAG.py"
+if ! python3 llm1-RAG.py; then
+    log_error "llm1-RAG.py failed to execute. Please check the script and inputs."
 fi
 
-mv WikiRC_StepThree.json ${INPUT_DIR}/input3/output2/llm1oneShotRag/
+mv WikiRC_StepThree.json "${INPUT_DIR}"/input3/output2/llm1-zero-shot-pompt/
 
 echo "moving output to next step"
 
-find ${INPUT_DIR}/input3/output2/ -mindepth 1 -maxdepth 1 ! -name 'llm1embRag' -exec mv {} ${OUTPUT_DIR}/output3/ \;
+find "${INPUT_DIR}"/input3/output2/ -mindepth 1 -maxdepth 1 ! -name 'llm1-RAG' -exec mv {} "${OUTPUT_DIR}"/output3/ \;
