@@ -18,8 +18,8 @@ if ! python3 llm1-zero-shot-pompt.py; then
     log_error "llm1-zero-shot-pompt failed to execute. Please check the script and inputs."
 fi
 
-mv WikiRC_StepFour.json "${INPUT_DIR}"/input4/output3/llm2-zero-shot-pompt/
+mv WikiRC_StepFour.json "${INPUT_DIR}"/json-data-to-llm1/llm1-embRAG-summaries/llm2-zero-shot-pompt/
 
 echo "moving output to next step"
 
-find "${INPUT_DIR}"/input4/output3/ -mindepth 1 -maxdepth 1 ! -name 'llm1-zero-shot-pompt' -exec mv {} "${OUTPUT_DIR}"/output4/ \;
+find "${INPUT_DIR}"/json-data-to-llm1/ollm1-embRAG-summaries/ -mindepth 1 -maxdepth 1 ! -name 'llm1-zero-shot-pompt' -exec mv {} "${OUTPUT_DIR}"/llm1-zero-shot-summaries/ \;

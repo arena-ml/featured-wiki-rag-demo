@@ -18,8 +18,8 @@ if ! python3 llm1-RAG.py; then
     log_error "llm1-RAG.py failed to execute. Please check the script and inputs."
 fi
 
-mv WikiRC_StepThree.json "${INPUT_DIR}"/input3/output2/llm1-zero-shot-pompt/
+mv WikiRC_StepThree.json "${INPUT_DIR}"/vector-store/embedded-data/llm1-zero-shot-pompt/
 
 echo "moving output to next step"
 
-find "${INPUT_DIR}"/input3/output2/ -mindepth 1 -maxdepth 1 ! -name 'llm1-RAG' -exec mv {} "${OUTPUT_DIR}"/output3/ \;
+find "${INPUT_DIR}"/vector-store/embedded-data/ -mindepth 1 -maxdepth 1 ! -name 'llm1-RAG' -exec mv {} "${OUTPUT_DIR}"/llm1-embRAG-summaries/ \;

@@ -13,13 +13,13 @@ if ! python3 fetch-data.py; then
     log_error "fetch-data.py failed to execute. Please check the script and inputs."
 fi
 
-mv WikiRC_StepOne.json "${INPUT_DIR}"/input1/phi35ragRepo/embed-data/
+mv WikiRC_StepOne.json "${INPUT_DIR}"/pipeline-src-code/phi35ragRepo/embed-data/
 
 #move output to sharedDir
 echo "moving output to next step"
 
 # experimental cmd
-find "${INPUT_DIR}"/input1/phi35ragRepo/ -mindepth 1 -maxdepth 1 ! -name 'fetch-data' -exec mv {} "${OUTPUT_DIR}"/output1/ \;
+find "${INPUT_DIR}"/pipeline-src-code/phi35ragRepo/ -mindepth 1 -maxdepth 1 ! -name 'fetch-data' -exec mv {} "${OUTPUT_DIR}"/raw-data/ \;
 
 # Final message
 echo "Script completed successfully"

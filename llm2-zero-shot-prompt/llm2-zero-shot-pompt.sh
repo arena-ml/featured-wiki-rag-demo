@@ -21,8 +21,8 @@ fi
 echo "moving output to next step"
 
 
-mv WikiRC_StepFive.json "${INPUT_DIR}"/input5/output4/auto-rater/
+mv WikiRC_StepFive.json "${INPUT_DIR}"/json-data-to-llm2/llm1-zero-shot-summaries/auto-rater/
 
 #moving only relevant part to next stage
 
-find "${INPUT_DIR}"/input5/output4/ -mindepth 1 -maxdepth 1 ! -name 'llm2-zero-shot-pompt' -exec mv {} "${OUTPUT_DIR}"/output5/ \;
+find "${INPUT_DIR}"/json-data-to-llm2/llm1-zero-shot-summaries/ -mindepth 1 -maxdepth 1 ! -name 'llm2-zero-shot-pompt' -exec mv {} "${OUTPUT_DIR}"/llm2-zero-shot-summaries/ \;
