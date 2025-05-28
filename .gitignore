@@ -3,6 +3,7 @@
 misc/docker_vol/
 .env
 .DS_Store
+.idea
 bin/
 temp/
 config/
