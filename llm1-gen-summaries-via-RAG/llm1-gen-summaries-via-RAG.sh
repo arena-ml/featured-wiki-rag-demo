@@ -21,6 +21,6 @@ fi
 #mv WikiRC_StepThree.json "${INPUT_DIR}"/wiki-edits-embedded/embeddings-of-wiki-articles-with-edits/llm1-gen-summaries-zeroshot/
 
 echo "moving output to next step"
-mv llm1-gen-summaries-via-RAG.json  "${OUTPUT_DIR}"/llm1-summaries-using-embRAG/
+mv llm1-summaries-using-embRAG.json  "${OUTPUT_DIR}"/llm1-summaries-using-embRAG/
 
 find "${INPUT_DIR}"/wiki-edits-embedded/embeddings-of-wiki-articles-with-edits/auto-rate-summaries/ -mindepth 1 -maxdepth 1 ! -name 'llm1-gen-summaries-via-RAG' -exec mv {} "${OUTPUT_DIR}"/llm1-summaries-using-embRAG/ \;

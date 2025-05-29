@@ -19,7 +19,7 @@ CONST_MAX_CTX=8200
 # Paths
 
 articles_file_path = "WWikiRC_StepOne.json"
-output_file_path = "llm2-gen-summaries-zeroshot.json "
+output_file_path = "llm2-summaries-using-zeroshot.json "
 
 
 # Load articles
