@@ -9,14 +9,12 @@ log_error() {
 
 
 echo "Running the summary comparsion script"
-if ! python3 smryCmp.py; then
-    log_error " SmryCmp.py failed to execute. Please check the script and inputs."
+if ! python3 auto-rate-summaries.py; then
+    log_error " auto-rate-summaries.py failed to execute. Please check the script and inputs."
 fi
 
 
 echo "moving output to next step"
 
-
-
 #moving only relevant part to next stage
-mv "${INPUT_DIR}"/all-summaries/llm2-zero-shot-summaries/auto-rater/ "${OUTPUT_DIR}"/summaries-score/
+mv "${INPUT_DIR}"/all-summaries/llm2-zero-shot-summaries/auto-rater/ "${OUTPUT_DIR}"/all-summaries-score/
