@@ -17,8 +17,9 @@ CONST_N_CTX=35000
 CONST_MAX_CTX=8200
 
 # Paths
-articles_file_path = "WikiRC_StepThree.json"
-output_file_path = "WikiRC_StepFour.json"
+
+articles_file_path = "WWikiRC_StepOne.json"
+output_file_path = "llm2-gen-summaries-zeroshot.json "
 
 
 # Load articles
@@ -85,7 +86,7 @@ Recent Changes made in the article:
         with console.status("[bold green]Generating summary..."):
 
             genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.6,"top_k": 40, "top_p": 0.95, "min_p": 0.05}
-            output : ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0',  messages=[
+            output : ollama.ChatResponse = ollama.chat(model='gemma3:12b-it-qat',  messages=[
               {
                 'role': 'user',
                 'content': prompt,
@@ -106,7 +107,7 @@ for article in articles:
     
     if  embResponse!= "NULL":
         summary = generate_summary(article)
-        article["llm1oneShotResponse"] = summary
+        article["llm2oneShotResponse"] = summary
         console.print(Markdown(f"### Summary for {article['title']}\n{summary}"))
         console.print("\n" + "=" * 90 + "\n")
 
