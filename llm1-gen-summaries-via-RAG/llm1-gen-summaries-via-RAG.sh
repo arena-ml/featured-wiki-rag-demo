@@ -23,4 +23,4 @@ fi
 echo "moving output to next step"
 mv llm1-gen-summaries-via-RAG.json  "${OUTPUT_DIR}"/llm1-zero-shot-summaries/
 
-#find "${INPUT_DIR}"/wiki-edits-embedded/embeddings-of-wiki-articles-with-edits/ -mindepth 1 -maxdepth 1 ! -name 'llm1-gen-summaries-via-RAG' -exec mv {} "${OUTPUT_DIR}"/llm1-summaries-using-zero-shot/ \;
+find "${INPUT_DIR}"/wiki-edits-embedded/embeddings-of-wiki-articles-with-edits/auto-rate-summaries/ -mindepth 1 -maxdepth 1 ! -name 'llm1-gen-summaries-via-RAG' -exec mv {} "${OUTPUT_DIR}"/llm1-summaries-using-zero-shot/ \;
