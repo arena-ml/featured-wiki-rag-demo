@@ -24,6 +24,6 @@ echo "moving output to next step"
 #mv WikiRC_StepFive.json "${INPUT_DIR}"/json-data-to-llm2/llm1-summaries-using-zero-shot/auto-rater/
 
 echo "moving output to next step"
-mv llm2-gen-summaries-zeroshot.json  "${OUTPUT_DIR}"/llm2-summaries-using-zeroshot/
+mv llm2-summaries-using-zeroshot.json  "${OUTPUT_DIR}"/llm2-summaries-using-zeroshot/
 
 #find "${INPUT_DIR}"/json-data-to-llm2/llm1-summaries-using-zero-shot/ -mindepth 1 -maxdepth 1 ! -name 'llm2-gen-summaries-zeroshot' -exec mv {} "${OUTPUT_DIR}"/llm2-summaries-using-zeroshot/ \;

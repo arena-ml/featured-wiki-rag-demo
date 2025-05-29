@@ -30,7 +30,7 @@ vectorstore_path = (
     "vectorstore_index.faiss"  # .faiss is not a not a file so don't check this
 )
 inputPath="WikiRC_StepTwo.json"
-output_file_path = "llm1-gen-summaries-via-RAG"
+output_file_path = "llm1-summaries-using-embRAG.json"
 
 
 
