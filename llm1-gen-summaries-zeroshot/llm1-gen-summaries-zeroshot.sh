@@ -21,6 +21,6 @@ fi
 #mv llm1-gen-summaries-zeroshot.json "${INPUT_DIR}"/json-data-to-llm1/llm1-summaries-using-embRAG/llm2-gen-summaries-zeroshot/
 
 echo "moving output to next step"
-mv llm1-gen-summaries-zeroshot.json  "${OUTPUT_DIR}"/llm1-zero-shot-summaries/
+mv llm1-gen-summaries-zeroshot.json  "${OUTPUT_DIR}"/llm1-summaries-using-zeroshot/
 
-#find "${INPUT_DIR}"/json-data-to-llm1/wiki-edits-as-json/ -mindepth 1 -maxdepth 1 ! -name 'llm1-gen-summaries-zeroshot' -exec mv {} "${OUTPUT_DIR}"/llm1-zero-shot-summaries/ \;
+#find "${INPUT_DIR}"/json-data-to-llm1/wiki-edits-as-json/ -mindepth 1 -maxdepth 1 ! -name 'llm1-gen-summaries-zeroshot' -exec mv {} "${OUTPUT_DIR}"/llm1-summaries-using-zeroshot/ \;
