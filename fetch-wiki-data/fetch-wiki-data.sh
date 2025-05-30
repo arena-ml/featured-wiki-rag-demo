@@ -21,7 +21,7 @@ cp WikiRC_StepOne.json "${INPUT_DIR}"/src-notebooks/phi35ragRepo/llm2-gen-summar
 echo "moving output to next step"
 
 # experimental cmd
-find "${INPUT_DIR}"/src-notebooks/phi35ragRepo/ -mindepth 1 -maxdepth 1 ! -name 'fetch-wiki-data' -exec mv {} "${OUTPUT_DIR}"/wiki-articles-with-edits-in-json \;
+find "${INPUT_DIR}"/src-notebooks/phi35ragRepo/ -mindepth 1 -maxdepth 1 ! -name 'fetch-wiki-data' -exec mv {} "${OUTPUT_DIR}"/wiki-articles-with-edits-in-json/ \;
 
 # Final message
 echo "Script completed successfully"
