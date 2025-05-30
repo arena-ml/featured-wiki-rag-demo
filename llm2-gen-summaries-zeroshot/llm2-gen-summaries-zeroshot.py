@@ -18,7 +18,7 @@ CONST_MAX_CTX=8200
 
 # Paths
 
-articles_file_path = "WWikiRC_StepOne.json"
+articles_file_path = "WikiRC_StepOne.json"
 output_file_path = "llm2-summaries-using-zeroshot.json "
 
 
