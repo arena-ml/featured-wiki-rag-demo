@@ -9,7 +9,7 @@ from rich.markdown import Markdown
 # OpenTelemetry Metrics Only
 import openlit
 
-openlit.init(collect_gpu_stats=True)
+openlit.init(collect_gpu_stats=True,capture_message_content=False)
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
