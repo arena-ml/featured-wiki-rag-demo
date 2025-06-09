@@ -2,7 +2,7 @@ from ollama import chat
 import ollama
 # import openlit
 
-# openlit.init(collect_gpu_stats=True)
+# openlit.init(collect_gpu_stats=True,capture_message_content=False)
 
 genOpts = {"num_predict":100,"num_ctx":3200}
 

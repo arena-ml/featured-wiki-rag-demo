@@ -11,7 +11,7 @@ import numpy as np
 import langchain_ollama 
 import openlit
 
-openlit.init(collect_gpu_stats=True)
+openlit.init(collect_gpu_stats=True,capture_message_content=False)
 
 
 
