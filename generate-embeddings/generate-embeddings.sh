@@ -15,7 +15,7 @@ fi
 echo "moving output to next step"
 
 # moving files to next stage folder
-mv vectorstore_index.faiss "${INPUT_DIR}"/wiki-edits-as-json/wiki-articles-with-edits-in-json/llm1-gen-summaries-via-RAG/
+mv article_embeddings_db "${INPUT_DIR}"/wiki-edits-as-json/wiki-articles-with-edits-in-json/llm1-gen-summaries-via-RAG/
 
 #temp way to indicate this data is from step 2 of pipeline and it's used by emb-RAG step
 mv WikiRC_StepOne.json WikiRC_StepTwo.json
