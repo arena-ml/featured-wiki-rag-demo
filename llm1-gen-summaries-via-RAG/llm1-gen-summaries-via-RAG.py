@@ -1,14 +1,14 @@
 import json
 import sys
 import logging
-import langchain_community.vectorstores
+
+import langchain_chroma
 from rich.console import Console
 from rich.markdown import Markdown
-import langchain_community
 import ollama
 import langchain_ollama 
 import openlit
-
+import chromadb
 
 openlit.init(collect_gpu_stats=True,capture_message_content=False)
 
@@ -22,16 +22,15 @@ console = Console(width=90)
 CONST_N_CTX=35000
 CONST_MAX_CTX=8200
 
-
-
-
-# Paths
-vectorstore_path = (
-    "vectorstore_index.faiss"  # .faiss is not a not a file so don't check this
-)
+vectorstore_path = "article_embeddings_db"
 inputPath="WikiRC_StepTwo.json"
 output_file_path = "llm1-summaries-using-embRAG.json"
 
+chroma_client_settings = chromadb.config.Settings(
+    is_persistent=True,
+    persist_directory=vectorstore_path,
+    anonymized_telemetry=False,
+)
 
 
 
@@ -77,15 +76,13 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
     
     # Step 1: Document Retrieval
     try:
-        docs = retriever.max_marginal_relevance_search(query,filter={"articleID": aID},k=40,fetch_k=200)
+        docs = retriever.max_marginal_relevance_search(query=query,filter={"articleID": aID},k=50,fetch_k=300)
         logging.info(f"Type of retriever output: {type(docs)}, len_docs: {len(docs)}")    
         if not docs:
             # empty_results_counter.add(1, {"query": query, "queryType": "max_marginal_relevance_search"})
             
             logging.warning("No documents retrieved for the question")
             return "NULL", []
-        
-        # doc_retrieval_time.record(time.time() - start_time)
     except Exception as e:
         logging.error(f"Error during document retrieval: {e}")
         logging.error(f"Retriever type: {type(retriever)}")  # Add this to check retriever type
@@ -102,8 +99,6 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
     # Step 3: LLM Response Generation
     try:
         with console.status("[bold green]Generating response..."):
-            # start_time = time.time()
-
             genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.6,"top_k": 40, "top_p": 0.95, "min_p": 0.05}
 
             response: ollama.ChatResponse = ollama.chat(model='phi3.5:3.8b-mini-instruct-q8_0', messages=[
@@ -113,8 +108,6 @@ def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
               },
             ],
             options=genOpts)
-
-            # summary_generation_time.record(time.time() - start_time)
 
         logging.info(f"Raw model output: {response.message}")
 
@@ -129,12 +122,12 @@ def main():
     # Initialize embeddings Model
     try:
         global embeddings
-        embeddings = embeddings = langchain_ollama.OllamaEmbeddings(model="nomic-embed-text")
+        embeddings = langchain_ollama.OllamaEmbeddings(model="nomic-embed-text")
     except Exception as e:
         logging.error(f"Failed to initialize embeddings: {e}")
     
     try:
-        vectorstore = langchain_community.vectorstores.FAISS.load_local(vectorstore_path, embeddings, allow_dangerous_deserialization=True)
+        vectorstore = langchain_chroma.Chroma(persist_directory=vectorstore_path,embedding_function=embeddings,collection_name="article_embeddings",client_settings=chroma_client_settings)
     except Exception as e:
         logging.error(f"Failed to load vectorstore: {e}")
         sys.exit(1)

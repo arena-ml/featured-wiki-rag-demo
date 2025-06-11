@@ -4,14 +4,13 @@ import time
 import json
 import logging
 import signal
+import langchain
 import langchain.schema
 import langchain.text_splitter
-import langchain_community
-import langchain_community.vectorstores
 from tqdm import tqdm
-import langchain
-import langchain_community
 import langchain_ollama
+from langchain_chroma import Chroma
+import chromadb
 
 import openlit
 
@@ -38,7 +37,13 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 
 json_file_path = "WikiRC_StepOne.json"
-saveVectorStoreTo = "vectorstore_index.faiss"
+saveVectorStoreTo = "article_embeddings_db"
+
+chroma_client_settings = chromadb.config.Settings(
+    is_persistent=True,
+    persist_directory=saveVectorStoreTo,
+    anonymized_telemetry=False,
+)
 
 def parse_json(file_path):
     try:
@@ -118,7 +123,15 @@ def process_and_index():
                     texts = list(split_documents([doc]))
                     # document_to_chunks.record(len(texts))
                     if vectorstore is None:
-                        vectorstore = langchain_community.vectorstores.FAISS.from_documents(texts, embeddings)
+                        # vectorstore = langchain_community.vectorstores.FAISS.from_documents(texts, embeddings)
+                        vectorstore = Chroma(
+                            collection_name="article_embeddings",
+                            client_settings=chroma_client_settings,
+                            embedding_function=embeddings,
+                            persist_directory=saveVectorStoreTo,
+                            # Where to save data locally, remove if not necessary
+                        )
+                        vectorstore.add_documents(texts)
                     else:
                         vectorstore.add_documents(texts)
 
@@ -130,9 +143,9 @@ def process_and_index():
 
                 pbar.update(1)
 
-        if vectorstore:
-            vectorstore.save_local(saveVectorStoreTo)
-            logging.info("Vector store saved successfully")
+        # if vectorstore:
+        #     vectorstore.save_local(saveVectorStoreTo)
+        #     logging.info("Vector store saved successfully")
     except Exception as e:
         logging.error(f"Unexpected error: {str(e)}")
         # errors_count.add(1)
