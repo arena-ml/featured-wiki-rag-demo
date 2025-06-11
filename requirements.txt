@@ -6,6 +6,8 @@ psutil
 faiss-cpu
 langchain
 langchain_community
+langchain-chroma>=0.1.2
+chromadb
 ollama
 langchain-ollama
 #telemetry packages
@@ -17,6 +19,7 @@ openlit
 bs4
 rich
 tqdm
+beautifulsoup4
 #tiktoken needed in order to for TokenTextSplitter
 tiktoken 
 #NOTE:huggingface libs or langchain derived libs requires torch like heavy libs.
@@ -25,8 +28,4 @@ tiktoken
 #needed for openlit
 psutil
 nvidia-ml-py 
-amdsmi 
-
-
-
-
+amdsmi
