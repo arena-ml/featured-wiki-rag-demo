@@ -102,13 +102,10 @@ Recent Changes made in the article:
 
 # Process selected articles and store summaries
 for article in articles:
-    embResponse = article.get("llm1embResponse", "NULL")
-    
-    if  embResponse!= "NULL":
-        summary = generate_summary(article)
-        article["llm1oneShotResponse"] = summary
-        console.print(Markdown(f"### Summary for {article['title']}\n{summary}"))
-        console.print("\n" + "=" * 90 + "\n")
+    summary = generate_summary(article)
+    article["llm1oneShotResponse"] = summary
+    console.print(Markdown(f"### Summary for {article['title']}\n{summary}"))
+    console.print("\n" + "=" * 90 + "\n")
 
 # Save updated articles with summaries
 try:
