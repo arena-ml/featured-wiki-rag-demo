@@ -7,6 +7,11 @@ log_error() {
     exit 1
 }
 
+echo "Running the result merging script"
+if ! python3 combine-summareis-to-one-json.py; then
+    log_error " combine-summareis-to-one-json.py failed to execute. Please check the script and inputs."
+fi
+
 
 echo "Running the summary comparsion script"
 if ! python3 auto-rate-summaries.py; then
