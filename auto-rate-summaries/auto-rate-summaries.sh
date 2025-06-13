@@ -22,4 +22,4 @@ fi
 echo "moving output to next step"
 
 #moving only relevant part to next stage
-mv "${INPUT_DIR}"/all-summaries/llm2-zero-shot-summaries/auto-rater/ "${OUTPUT_DIR}"/all-summaries-score/
+mv "${INPUT_DIR}"/all-summaries/WikiRC_StepSix.json "${OUTPUT_DIR}"/all-summaries-score/
