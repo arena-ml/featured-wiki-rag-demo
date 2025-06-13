@@ -16,11 +16,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 console = Console(width=120)
 
 # Paths
-articles_file_path = "WikiRC_StepFive.json"
+articles_file_path = "merged_articles.json"
 output_file_path = "WikiRC_StepSix.json"
 
 CONST_N_CTX = 40000
-CONST_MAX_CTX=7000
+CONST_MAX_CTX=2000
 
 
 
@@ -118,10 +118,6 @@ Summary-Three
         return "An error occurred while generating the model response."
 
     return response
-
-
-
-
 
 # Process selected articles and store summaries
 for article in articles:
