@@ -20,7 +20,7 @@ articles_file_path = "merged_articles.json"
 output_file_path = "WikiRC_StepSix.json"
 
 CONST_N_CTX = 40000
-CONST_MAX_CTX=2000
+CONST_MAX_CTX=900
 
 
 
@@ -77,20 +77,21 @@ def summaryReview(article):
     llm2oneShotReponse = article.get("llm2oneShotResponse","")
     
     prompt = f"""
-I have given you an article and three summaries, in JSON format provide score out of ten
-for Summary-One, Summary-Two and Summary-Three on these four metrics — Coherence, Consistency, Fluency, and Relevance.
+I have given you an article and three summaries, provide score out of ten for llm1-rag-Summary, 
+llm1-ZeroShot-summary and llm2-ZeroShot-summary on these four metrics — Coherence, Consistency, Fluency, and Relevance.
+Scores Should be in JSON format.
 Your response should contain no comments, notes, or explanations.
 
 [Article]:  
 {main_text}
 
-Summary-One:  
+[llm1-rag-Summary]:  
 {llm1embResponse}
 
-Summary-Two:  
+[llm1-ZeroShot-Summary]:  
 {llm1oneShotReponse}
 
-Summary-Three
+[llm2-ZeroShot-Summary]:  
 {llm2oneShotReponse}
 """
     try:
