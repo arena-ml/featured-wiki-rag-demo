@@ -121,17 +121,15 @@ Summary-Three
 
 # Process selected articles and store summaries
 for article in articles:
-    embResponse = article.get("llm1embResponse", "NULL")
-    if  embResponse!= "NULL":
-        review = summaryReview(article)
-        
-        jsonPart = extract_response(review)
-        article["smryReview"] = jsonPart
+    review = summaryReview(article)
 
-        article["smryReviewProcess"] = review
+    jsonPart = extract_response(review)
+    article["smryReview"] = jsonPart
 
-        console.print(Markdown(f"### Review for summaries on  {article['title']}\n{jsonPart}"))
-        console.print("\n" + "=" * 90 + "\n")
+    article["smryReviewProcess"] = review
+
+    console.print(Markdown(f"### Review for summaries on  {article['title']}\n{jsonPart}"))
+    console.print("\n" + "=" * 90 + "\n")
 
 # Save updated articles with summaries
 try:
