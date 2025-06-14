@@ -4,12 +4,16 @@ import os
 import ollama
 import sys
 import logging
+
+from opentelemetry.environment_variables import OTEL_LOGS_EXPORTER
 from rich.console import Console
 from rich.markdown import Markdown
+
 # OpenTelemetry Metrics Only
 import openlit
-
 openlit.init(collect_gpu_stats=True,capture_message_content=False)
+from openlit import logging as openlit_logging
+
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -70,6 +74,7 @@ def extract_response(response_text):
 
 # Function to generate summaries
 def summaryReview(article):
+    article_id = article.get("article_id")
     sections = article.get("content", {}).get("sections", [])        
     main_text = sections[0].get("text", "")
     llm1embResponse = article.get("llm1embResponse", "")
@@ -117,13 +122,12 @@ Your response should contain no comments, notes, or explanations.
     except Exception as e:
         logging.error(f"Error during LLM response generation: {e}")
         return "An error occurred while generating the model response."
-
+    openlit_logging.info(f"Summaries Score for Article {article_id} : {response}")
     return response
 
 # Process selected articles and store summaries
 for article in articles:
     review = summaryReview(article)
-
     jsonPart = extract_response(review)
     article["smryReview"] = jsonPart
 
@@ -139,3 +143,7 @@ try:
     logging.info(f"review  saved to {output_file_path}")
 except Exception as e:
     logging.error(f"Failed to save review: {e}")
+
+
+# Ensure the logger is shutdown before exiting so all pending logs are exported
+logger_provider.shutdown()
