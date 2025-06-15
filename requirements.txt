@@ -3,7 +3,6 @@ einops
 requests
 diskcache
 psutil
-faiss-cpu
 langchain
 langchain_community
 langchain-chroma>=0.1.2
@@ -14,6 +13,7 @@ langchain-ollama
 opentelemetry-sdk 
 opentelemetry-exporter-otlp 
 opentelemetry-instrumentation-logging
+opentelemetry-api
 openlit
 # misc
 bs4
