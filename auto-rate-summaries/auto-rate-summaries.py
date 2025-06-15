@@ -5,7 +5,6 @@ import ollama
 import sys
 import logging
 
-from opentelemetry.environment_variables import OTEL_LOGS_EXPORTER
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -144,6 +143,3 @@ try:
 except Exception as e:
     logging.error(f"Failed to save review: {e}")
 
-
-# Ensure the logger is shutdown before exiting so all pending logs are exported
-logger_provider.shutdown()
