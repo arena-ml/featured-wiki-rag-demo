@@ -1,4 +1,5 @@
 import json
+import  re
 import os
 import ollama
 import sys
@@ -8,8 +9,6 @@ from rich.markdown import Markdown
 
 # OpenTelemetry Metrics
 import openlit
-
-openlit.init(collect_gpu_stats=True, capture_message_content=False)
 
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
@@ -46,8 +45,10 @@ summary_score_histogram = meter.create_histogram(
 )
 
 
+openlit.init(collect_gpu_stats=True, capture_message_content=False)
+
+
 def record_score(data, a_id):
-    try:
         for summary, scores in data.items():
             for dimension, value in scores.items():
                 histogram = meter.create_histogram(
@@ -56,9 +57,6 @@ def record_score(data, a_id):
                     description=f"{dimension} score for summaries",
                 )
                 histogram.record(value, attributes={"summary": summary, "article_id": a_id})
-    except Exception as e:
-        console.print(e)
-        sys.exit(1)
 
 
 # Function to check file existence
@@ -97,14 +95,25 @@ if not isinstance(articles, list) or not articles:
 
 
 def extract_response(response_text):
+    # Step 1: Extract the main part after </think>
     parts = response_text.split('</think>')
-    main_part = parts[1].strip() if len(parts) > 1 else response_text
-    # Strip the markdown formatting
+    main_part = parts[1].strip() if len(parts) > 1 else response_text.strip()
+
+    # Step 2: Remove Markdown backticks if present
     if main_part.startswith("```json"):
-        scores = main_part.strip("`")  # remove backticks
-        scores = scores.split("\n", 1)[1]  # remove the first line
-        scores = scores.rsplit("\n", 1)[0]  # remove the last line
-    return scores
+        main_part = main_part.strip("`")
+        lines = main_part.split("\n")
+        main_part = "\n".join(lines[1:-1])  # remove the ```json and closing ```
+
+    # Step 3: Remove trailing commas before } or ]
+    main_part = re.sub(r',\s*([\]}])', r'\1', main_part)
+
+    # Step 4: Truncate at last closing brace
+    last_brace = max(main_part.rfind("}"), main_part.rfind("]"))
+    if last_brace != -1:
+        main_part = main_part[:last_brace + 1]
+
+    return main_part
 
 
 # Function to generate summaries
@@ -170,9 +179,15 @@ for article in articles:
     scores = extract_response(review)
     article["smryReview"] = scores
 
-    scores_in_json = json.loads(scores)
-    record_score(scores_in_json, article_id)
+    scores_in_json ={}
 
+    try:
+        scores_in_json = json.loads(scores)
+    except Exception as e:
+        console.print(scores)
+        console.print(e)
+
+    record_score(scores_in_json, article_id)
     article["smryReviewProcess"] = review
 
     console.print(Markdown(f"### Review for summaries on  {article['title']}\n{scores}"))
