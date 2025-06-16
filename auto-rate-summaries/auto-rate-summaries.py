@@ -23,7 +23,7 @@ console = Console(width=120)
 articles_file_path = "merged_articles.json"
 output_file_path = "WikiRC_StepSix.json"
 
-CONST_N_CTX = 14000
+CONST_N_CTX = 40000
 CONST_MAX_CTX = 900
 
 # Get the OTEL Collector endpoint from env
