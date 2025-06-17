@@ -50,31 +50,32 @@ class EvaluationMetricsSender:
         # if not self.otel_endpoint:
         #     raise ValueError("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP environment variable is not set")
 
-        # # Configure OTLP exporter
-        # exporter = OTLPMetricExporter(
-        #     endpoint=f"{self.otel_endpoint}/v1/metrics",
-        #     headers={
-        #         "Content-Type": "application/x-protobuf"
-        #     }
-        # )
-        #
-        # # Set up metric reader with periodic export
-        # reader = PeriodicExportingMetricReader(
-        #     exporter=exporter,
-        #     export_interval_millis=3000  # Export every 5 seconds
-        # )
-        #
-        # # Create meter provider and meter
-        # metrics.set_meter_provider(MeterProvider(metric_readers=[reader]))
+        # Configure OTLP exporter
+        exporter = OTLPMetricExporter(
+            endpoint=f"{self.otel_endpoint}/v1/metrics",
+            headers={
+                "Content-Type": "application/x-protobuf"
+            }
+        )
 
-        oltp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
-        metrics.set_meter_provider(MeterProvider(
-            metric_readers=[PeriodicExportingMetricReader(
-                OTLPMetricExporter(endpoint=oltp_endpoint),
-                # export_interval_millis=2000 # every 2 seconds
-            )]
-        ))
-        self.meter = metrics.get_meter("summaries_evaluation")
+        # Set up metric reader with periodic export
+        reader = PeriodicExportingMetricReader(
+            exporter=exporter,
+            export_interval_millis=3000  # Export every 3 seconds
+        )
+
+        # Create meter provider and meter
+        metrics.set_meter_provider(MeterProvider(metric_readers=[reader]))
+
+        # oltp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
+        # metrics.set_meter_provider(MeterProvider(
+        #     metric_readers=[PeriodicExportingMetricReader(
+        #         OTLPMetricExporter(endpoint=oltp_endpoint),
+        #         # export_interval_millis=2000 # every 2 seconds
+        #     )]
+        # ))
+
+        self.meter = metrics.get_meter("summaries.evaluation")
 
         # Create gauges for each metric type
         self.coherence_gauge = self.meter.create_gauge(
