@@ -130,7 +130,7 @@ class EvaluationMetricsSender:
         for config_name, metrics_data in evaluation_data.items():
             # Add configuration-specific attributes
             attributes = base_attributes.copy()
-            attributes["method_type"] = config_name
+            attributes["method_type"] = config_name.lower()
 
             # Send individual metric values with error handling
             metric_mappings = {
