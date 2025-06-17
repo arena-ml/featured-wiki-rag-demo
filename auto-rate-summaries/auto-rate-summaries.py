@@ -71,7 +71,7 @@ class EvaluationMetricsSender:
         metrics.set_meter_provider(MeterProvider(
             metric_readers=[PeriodicExportingMetricReader(
                 OTLPMetricExporter(endpoint=oltp_endpoint),
-                export_interval_millis=2000  # every 5 seconds
+                # export_interval_millis=2000 # every 2 seconds
             )]
         ))
         self.meter = metrics.get_meter("summaries_evaluation")
@@ -112,6 +112,11 @@ class EvaluationMetricsSender:
             additional_attributes: Optional additional attributes to include
         """
 
+        # Validate input data
+        if not evaluation_data:
+            print("Warning: Empty evaluation_data provided")
+            return
+
         # Base attributes for all metrics
         base_attributes = {
             "evaluation_type": "llm_gen_summary_quality_assessment"
@@ -133,9 +138,10 @@ class EvaluationMetricsSender:
                 "Fluency": self.fluency_gauge,
                 "Relevance": self.relevance_gauge
             }
-
+            i=0
             for metric_name, gauge in metric_mappings.items():
                 if metric_name in metrics_data:
+                    i += 1
                     try:
                         # Validate metric value
                         metric_value = metrics_data[metric_name]
@@ -196,7 +202,9 @@ class EvaluationMetricsSender:
                     else:
                         print(
                             f"Warning: Unknown handle_missing_metrics option '{self.handle_missing_metrics}', defaulting to skip")
-
+        if i==0:
+            sys.exit("No metrics data provided")
+            print(metrics_data)
         print(f"Sent evaluation metrics for {len(evaluation_data)} configurations")
 
 
@@ -329,17 +337,15 @@ for article in articles:
         console.print(scores)
         console.print(e)
 
-    # record_score(scores_in_json, article_id)
-        # Send metrics
-        summary_meterics_sender.send_evaluation_metrics(
-            evaluation_data=scores_in_json,
-            additional_attributes={
-                "article_id": article_id,
-            }
-        )
+    summary_meterics_sender.send_evaluation_metrics(
+        evaluation_data=scores_in_json,
+        additional_attributes={
+            "article_id": article_id,
+        }
+    )
     article["smryReviewProcess"] = review
 
-    console.print(Markdown(f"### Review for summaries on  {article['title']}\n{scores}"))
+    console.print(f"### Review for summaries on  {article['title']}\n{scores}")
     console.print("\n" + "=" * 90 + "\n")
 
 # Save updated articles with summaries
