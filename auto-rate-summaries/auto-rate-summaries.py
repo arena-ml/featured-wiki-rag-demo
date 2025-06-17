@@ -28,13 +28,6 @@ output_file_path = "WikiRC_StepSix.json"
 CONST_N_CTX = 40000
 CONST_MAX_CTX = 900
 
-# Get the OTEL Collector endpoint from env
-otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
-
-# Set up OTEL metric exporter
-exporter = OTLPMetricExporter(endpoint=otel_endpoint)
-
-
 class EvaluationMetricsSender:
     def __init__(self,
                  service_name: str = "llm-evaluation-service",
@@ -74,35 +67,36 @@ class EvaluationMetricsSender:
         # # Create meter provider and meter
         # metrics.set_meter_provider(MeterProvider(metric_readers=[reader]))
 
+        oltp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_HTTP")
         metrics.set_meter_provider(MeterProvider(
             metric_readers=[PeriodicExportingMetricReader(
-                OTLPMetricExporter(endpoint=self.otel_endpoint),
-                export_interval_millis=5000  # every 5 seconds
+                OTLPMetricExporter(endpoint=oltp_endpoint),
+                export_interval_millis=2000  # every 5 seconds
             )]
         ))
-        self.meter = metrics.get_meter(__name__)
+        self.meter = metrics.get_meter("summaries_evaluation")
 
         # Create gauges for each metric type
         self.coherence_gauge = self.meter.create_gauge(
-            name="llm_evaluation_coherence",
+            name="llm_gen_summaries_coherence",
             description="Coherence score for LLM evaluation",
             unit="score"
         )
 
         self.consistency_gauge = self.meter.create_gauge(
-            name="llm_evaluation_consistency",
+            name="llm_gen_summaries_consistency",
             description="Consistency score for LLM evaluation",
             unit="score"
         )
 
         self.fluency_gauge = self.meter.create_gauge(
-            name="llm_evaluation_fluency",
+            name="llm_gen_summaries_fluency",
             description="Fluency score for LLM evaluation",
             unit="score"
         )
 
         self.relevance_gauge = self.meter.create_gauge(
-            name="llm_evaluation_relevance",
+            name="llm_gen_summaries_relevance",
             description="Relevance score for LLM evaluation",
             unit="score"
         )
@@ -355,7 +349,3 @@ try:
     logging.info(f"review  saved to {output_file_path}")
 except Exception as e:
     logging.error(f"Failed to save review: {e}")
-
-
-# to send all metrics
-time.sleep(10)
