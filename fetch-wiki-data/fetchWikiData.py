@@ -25,10 +25,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("fetch_wikiArticles")
 
-import openlit
-
-openlit.init(collect_gpu_stats=True, capture_message_content=False)
-
 # Configure session for reuse
 session = requests.Session()
 session.headers.update(
