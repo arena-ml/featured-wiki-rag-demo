@@ -29,3 +29,4 @@ tiktoken
 psutil
 nvidia-ml-py 
 amdsmi
+opentelemetry-instrumentation-openai

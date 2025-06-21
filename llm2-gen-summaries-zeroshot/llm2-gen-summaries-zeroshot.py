@@ -7,14 +7,16 @@ from rich.console import Console
 from rich.markdown import Markdown
 import openlit
 
-openlit.init(collect_gpu_stats=True,capture_message_content=False)
+openlit.init(collect_gpu_stats=True, capture_message_content=False)
 
 # Configure Logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 console = Console(width=120)
 
-CONST_N_CTX=35000
-CONST_MAX_CTX=8200
+CONST_N_CTX = 35000
+CONST_MAX_CTX = 8200
 
 # Paths
 
@@ -42,28 +44,31 @@ def clean_text(text: str) -> str:
     text = re.sub(r"\n{2,}", "\n", text).strip()
     return text
 
+
 # Initialize Model
 
 
 # Function to generate summaries
 def generate_summary(article):
-    output=""
+    output = ""
     title = article.get("title", "Unknown Title")
     sections = article.get("content", {}).get("sections", [])
-    
+
     if not sections:
         logging.warning(f"No sections found for article: {title}")
         return "No content available for summarization."
-    
+
     main_text = ""
-    recenttChange=""
+    recenttChange = ""
     for section in sections:
         main_text = f"\nArticle:\n{clean_text(section.get("text", ""))}\n\n"
         changes = section.get("changes", [])
         if changes:
-            changesText = "\n".join(f"- {chg.get('change_summary', 'No summary')}" for chg in changes)
+            changesText = "\n".join(
+                f"- {chg.get('change_summary', 'No summary')}" for chg in changes
+            )
             recenttChange = f"\n[Recent Changes]:\n{changesText}\n\n"
-    
+
     prompt = f"""
 Remember to not explain your actions or make any reference to requests made to you, in your response.
 Instruction: 
@@ -85,21 +90,32 @@ Recent Changes made in the article:
     try:
         with console.status("[bold green]Generating summary..."):
 
-            genOpts = {"num_predict":CONST_MAX_CTX,"num_ctx":CONST_N_CTX,"temperature":0.6,"top_k": 40, "top_p": 0.95, "min_p": 0.05}
-            output : ollama.ChatResponse = ollama.chat(model='gemma3:12b-it-qat',  messages=[
-              {
-                'role': 'user',
-                'content': prompt,
-              },
-            ],
-            options=genOpts)
-            
+            genOpts = {
+                "num_predict": CONST_MAX_CTX,
+                "num_ctx": CONST_N_CTX,
+                "temperature": 0.6,
+                "top_k": 40,
+                "top_p": 0.95,
+                "min_p": 0.05,
+            }
+            output: ollama.ChatResponse = ollama.chat(
+                model="gemma3:12b-it-qat",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
+                options=genOpts,
+            )
+
     except Exception as e:
         logging.error(f"Failed to load model: {e}")
         return "NULL"
-    
+
     response = output.message.content
     return response
+
 
 # Process selected articles and store summaries
 for article in articles:

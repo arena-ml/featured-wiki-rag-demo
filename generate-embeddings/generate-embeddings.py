@@ -1,4 +1,3 @@
-
 import sys
 import time
 import json
@@ -14,23 +13,24 @@ import chromadb
 
 import openlit
 
-openlit.init(collect_gpu_stats=True,capture_message_content=False)
+openlit.init(collect_gpu_stats=True, capture_message_content=False)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("indexing.log"),
-        logging.StreamHandler(sys.stdout)
-    ]
+    handlers=[logging.FileHandler("indexing.log"), logging.StreamHandler(sys.stdout)],
 )
 
 shutdown_requested = False
 
+
 def signal_handler(sig, frame):
     global shutdown_requested
-    logging.warning("Shutdown signal received. Finishing current batch before exiting...")
+    logging.warning(
+        "Shutdown signal received. Finishing current batch before exiting..."
+    )
     shutdown_requested = True
+
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
@@ -44,6 +44,7 @@ chroma_client_settings = chromadb.config.Settings(
     persist_directory=saveVectorStoreTo,
     anonymized_telemetry=False,
 )
+
 
 def parse_json(file_path):
     try:
@@ -63,10 +64,16 @@ def parse_json(file_path):
 
                 for section in article.get("content", {}).get("sections", []):
                     text = section.get("text", "")
-                    changes_content = "\n".join(
-                        [f"Change Summary: {c['change_summary']}\nDiff: {c['diff']}\n" 
-                         for c in section.get("changes", [])]
-                    ) if section.get("changes") else "No changes in this section."
+                    changes_content = (
+                        "\n".join(
+                            [
+                                f"Change Summary: {c['change_summary']}\nDiff: {c['diff']}\n"
+                                for c in section.get("changes", [])
+                            ]
+                        )
+                        if section.get("changes")
+                        else "No changes in this section."
+                    )
 
                     content = (
                         f"[Article Title: {title}]\n"
@@ -77,25 +84,31 @@ def parse_json(file_path):
 
                     # processing_time.record(time.time() - start_time)
                     # documents_processed.add(1)
-                    
-                    yield  langchain.schema.Document(
+
+                    yield langchain.schema.Document(
                         page_content=content,
-                        metadata={"source": "https://api.wikimedia.org","articleID": article_id, "articleTitle": title},
+                        metadata={
+                            "source": "https://api.wikimedia.org",
+                            "articleID": article_id,
+                            "articleTitle": title,
+                        },
                     )
     except Exception as e:
         logging.error(f"Error parsing JSON: {str(e)}")
         # errors_count.add(1)
         sys.exit(1)
 
+
 def split_documents(documents):
     try:
-        text_splitter = langchain.text_splitter.TokenTextSplitter(chunk_size=2000, chunk_overlap=50)
+        text_splitter = langchain.text_splitter.TokenTextSplitter(
+            chunk_size=2000, chunk_overlap=50
+        )
         for doc in documents:
             splits = text_splitter.split_text(doc.page_content)
             for chunk in splits:
                 yield langchain.schema.Document(
-                    page_content=chunk,
-                    metadata=doc.metadata  # ✅ preserve metadata
+                    page_content=chunk, metadata=doc.metadata  # ✅ preserve metadata
                 )
     except Exception as e:
         logging.error(f"Failed to split documents: {str(e)}")
@@ -105,7 +118,7 @@ def split_documents(documents):
 def process_and_index():
     vectorstore = None
     start_time = time.time()
-    
+
     try:
         embeddings = langchain_ollama.OllamaEmbeddings(model="nomic-embed-text")
 
@@ -153,6 +166,7 @@ def process_and_index():
     finally:
         logging.info(f"Process completed in {time.time() - start_time:.2f} seconds")
 
+
 def main():
     try:
         logging.info("Starting indexing process")
@@ -162,6 +176,7 @@ def main():
         logging.error(f"Unhandled exception in main: {str(e)}")
         # errors_count.add(1)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
