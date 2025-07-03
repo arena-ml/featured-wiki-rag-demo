@@ -144,8 +144,6 @@ def split_documents(documents):
 
 def process_and_index():
     vectorstore = None
-    start_time = time.time()
-
     try:
         embeddings = langchain_ollama.OllamaEmbeddings(model="nomic-embed-text")
 
@@ -190,27 +188,27 @@ def process_and_index():
         logging.error(f"Unexpected error: {str(e)}")
         # errors_count.add(1)
         sys.exit(1)
-    finally:
-        logging.info(f"Process completed in {time.time() - start_time:.2f} seconds")
+    # finally:
+    #     logging.info(f"embedding generation completed")
 
 
 def main():
     logging.getLogger().addHandler(handler)
-    main_logger = logging.getLogger("generate.embeddings.main")
-    main_logger.setLevel(logging.INFO)
-    openlit.logger.info("Generating embeddings start time: %.2f",time.time())
-    process_and_index()
-    main_logger.info("start of generate.embeddings: %.2f",time.time() )
+    # main_logger = logging.getLogger("generate.embeddings.main")
+    # main_logger.setLevel(logging.INFO)
+    # openlit.logger.info("Generating embeddings start time: %.2f",time.time())
+    # main_logger.info("start of generate.embeddings: %.2f",time.time() )
     try:
-        logging.info("Starting indexing process")
+        logging.debug("Starting embedding generation process")
         process_and_index()
-        logging.info("Indexing process completed successfully")
     except Exception as e:
-        logging.error(f"Unhandled exception in main: {str(e)}")
-        main_logger.info("end of generate.embeddings:%.7f",time.time())
-        openlit.logger.info("End of generate.embeddings: %.7f",time.time())
+        logging.error(f"Error occured during embedding generation: {str(e)}")
+        # main_logger.info("end of generate.embeddings:%.7f",time.time())
+        # openlit.logger.info("End of generate.embeddings: %.7f",time.time())
         # errors_count.add(1)
         sys.exit(1)
+    finally:
+        logging.debug("Finished embedding generation")
 
 
 
