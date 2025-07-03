@@ -198,20 +198,20 @@ def main():
     logging.getLogger().addHandler(handler)
     main_logger = logging.getLogger("generate.embeddings.main")
     main_logger.setLevel(logging.INFO)
-    openlit.logger.info("Generating embeddings start time",time=time.time())
+    openlit.logger.info("Generating embeddings start time: %.2f",time.time())
     process_and_index()
-    main_logger.info("start of generate.embeddings: %s",time.time() )
+    main_logger.info("start of generate.embeddings: %.2f",time.time() )
     try:
         logging.info("Starting indexing process")
         process_and_index()
         logging.info("Indexing process completed successfully")
     except Exception as e:
         logging.error(f"Unhandled exception in main: {str(e)}")
-        main_logger.info("end of generate.embeddings: %s",time.time())
-        openlit.logger.info("End of generate.embeddings: %s",time.time())
+        main_logger.info("end of generate.embeddings:%.7f",time.time())
+        openlit.logger.info("End of generate.embeddings: %.7f",time.time())
         # errors_count.add(1)
         sys.exit(1)
-        
+
 
 
 if __name__ == "__main__":
