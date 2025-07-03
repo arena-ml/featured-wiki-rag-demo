@@ -1,4 +1,5 @@
 import sys
+import os
 import time
 import json
 import logging
@@ -14,6 +15,26 @@ import chromadb
 import openlit
 
 openlit.init(collect_gpu_stats=True, capture_message_content=False)
+
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+#  from opentelemetry.sdk._logs.export import ConsoleLogExporter
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.resources import Resource
+
+logger_provider = LoggerProvider()
+set_logger_provider(logger_provider)
+OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+otlp_exporter = OTLPLogExporter(endpoint=OTEL_COLLECTOR_ENDPOINT, insecure=True)
+logger_provider.add_log_record_processor(BatchLogRecordProcessor(otlp_exporter))
+
+#  console_exporter = ConsoleLogExporter()
+#  logger_provider.add_log_record_processor(BatchLogRecordProcessor(console_exporter))
+
+handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -168,10 +189,15 @@ def process_and_index():
 
 
 def main():
+    logging.getLogger().addHandler(handler)
+    main_logger = logging.getLogger("generate.embeddings.main")
+    main_logger.setLevel(logging.INFO)
+    main_logger.info("start of generate.embeddings: %s",time.time() )
     try:
         logging.info("Starting indexing process")
         process_and_index()
         logging.info("Indexing process completed successfully")
+        main_logger.info("end of generate.embeddings: %s",time.time())
     except Exception as e:
         logging.error(f"Unhandled exception in main: {str(e)}")
         # errors_count.add(1)
