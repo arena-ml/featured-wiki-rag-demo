@@ -16,6 +16,7 @@ import openlit
 
 openlit.init(collect_gpu_stats=True, capture_message_content=False)
 
+
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 #  from opentelemetry.sdk._logs.export import ConsoleLogExporter
@@ -23,10 +24,15 @@ from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 
-logger_provider = LoggerProvider()
+logger_provider = LoggerProvider(shutdown_on_exit=True,resource=Resource.create(
+        {
+            "service.name": "generate.embeddings",
+        }
+    ),)
+
 set_logger_provider(logger_provider)
 OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-
+OTEL_RSRC_ENDPOINT = os.getenv("OTEL_RESOURCE_ATTRIBUTE")
 otlp_exporter = OTLPLogExporter(endpoint=OTEL_COLLECTOR_ENDPOINT, insecure=True)
 logger_provider.add_log_record_processor(BatchLogRecordProcessor(otlp_exporter))
 
@@ -192,16 +198,20 @@ def main():
     logging.getLogger().addHandler(handler)
     main_logger = logging.getLogger("generate.embeddings.main")
     main_logger.setLevel(logging.INFO)
+    openlit.logger.info("Generating embeddings start time",time=time.time())
+    process_and_index()
     main_logger.info("start of generate.embeddings: %s",time.time() )
     try:
         logging.info("Starting indexing process")
         process_and_index()
         logging.info("Indexing process completed successfully")
-        main_logger.info("end of generate.embeddings: %s",time.time())
     except Exception as e:
         logging.error(f"Unhandled exception in main: {str(e)}")
+        main_logger.info("end of generate.embeddings: %s",time.time())
+        openlit.logger.info("End of generate.embeddings: %s",time.time())
         # errors_count.add(1)
         sys.exit(1)
+        
 
 
 if __name__ == "__main__":
