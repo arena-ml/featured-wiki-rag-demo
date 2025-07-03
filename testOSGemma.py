@@ -87,7 +87,7 @@ Recent Changes made in the article:
 
     try:
         with console.status("[bold green]Generating summary..."):
-            genOpts = {
+            gen_opts = {
                 "num_predict": CONST_MAX_CTX,
                 "num_ctx": CONST_N_CTX,
                 "temperature": 0.6,
@@ -96,7 +96,7 @@ Recent Changes made in the article:
                 "min_p": 0.05,
             }
             output = ollama.generate(
-                model="cogito:3b-v1-preview-llama-q8_0", prompt=Prompt, options=genOpts
+                model="cogito:3b-v1-preview-llama-q8_0", prompt=Prompt, options=gen_opts
             )
     except Exception as e:
         logging.error(f"Failed to load model: {e}")
