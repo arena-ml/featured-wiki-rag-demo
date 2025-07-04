@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1 \
     OLLAMA_DEBUG=1 \
     PIP_INDEX_URL=https://pypi.org/simple \
     PIP_PYPI_URL=https://pypi.org/simple \
-    TZ = "Asia/Calcutta"
+    TZ=UTC
 
 # Copy Python dependencies list
 COPY requirements.txt requirements.txt
