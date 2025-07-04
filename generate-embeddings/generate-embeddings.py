@@ -57,7 +57,7 @@ class Config:
             embedding_model=os.getenv("EMBEDDING_MODEL", cls.embedding_model),
             chunk_size=int(os.getenv("CHUNK_SIZE", cls.chunk_size)),
             chunk_overlap=int(os.getenv("CHUNK_OVERLAP", cls.chunk_overlap)),
-            log_level=getattr(logging, os.getenv("LOG_LEVEL", "DEBUG")),
+            log_level=getattr(logging, os.getenv("LOG_LEVEL",cls.log_level)),
             log_file=os.getenv("LOG_FILE", cls.log_file),
         )
 
