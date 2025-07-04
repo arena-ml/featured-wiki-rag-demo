@@ -312,20 +312,19 @@ class EmbeddingGenerator:
     def run(self) -> None:
         """Main execution method."""
         self.setup_logging()
-        openlit.logger.info("Generating embeddings start time: %.2f", time.time())
-
         try:
-            logging.info("Starting embedding generation process")
+            logging.info("Starting embedding generation")
             self.process_and_index()
         except Exception as e:
             logging.error(f"Error occurred during embedding generation: {str(e)}")
             sys.exit(1)
-        finally:
-            logging.info("Finished embedding generation")
 
 
 def main():
     """Entry point for the embedding generator."""
+    # Set TZ explicitly
+    os.environ['TZ'] = 'UTC'  # or 'America/New_York', etc.
+    time.tzset()
     try:
         config = Config.from_env()
         generator = EmbeddingGenerator(config)
@@ -336,6 +335,9 @@ def main():
     except Exception as e:
         logging.error(f"Fatal error: {str(e)}")
         sys.exit(1)
+    finally:
+        logging.info("succesfully finished embedding generation")
+        logging.shutdown()
 
 
 if __name__ == "__main__":
