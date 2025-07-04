@@ -44,7 +44,7 @@ class Config:
     embedding_model: str = "nomic-embed-text"
     chunk_size: int = 2500
     chunk_overlap: int = 50
-    log_level: int = logging.INFO
+    log_level: int = logging.DEBUG
     log_file: str = "indexing.log"
 
     @classmethod
