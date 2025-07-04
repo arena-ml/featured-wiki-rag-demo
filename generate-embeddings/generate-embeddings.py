@@ -50,6 +50,18 @@ class Config:
     @classmethod
     def from_env(cls) -> 'Config':
         """Create configuration from environment variables."""
+
+        # Handle log level conversion
+        log_level_str = os.getenv("LOG_LEVEL", "DEBUG").upper()
+        log_level_map = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL
+        }
+        log_level = log_level_map.get(log_level_str, logging.DEBUG)
+
         return cls(
             json_file_path=os.getenv("JSON_FILE_PATH", cls.json_file_path),
             vector_store_path=os.getenv("VECTOR_STORE_PATH", cls.vector_store_path),
@@ -57,7 +69,7 @@ class Config:
             embedding_model=os.getenv("EMBEDDING_MODEL", cls.embedding_model),
             chunk_size=int(os.getenv("CHUNK_SIZE", cls.chunk_size)),
             chunk_overlap=int(os.getenv("CHUNK_OVERLAP", cls.chunk_overlap)),
-            log_level=getattr(logging, os.getenv("LOG_LEVEL",cls.log_level)),
+            log_level=log_level,
             log_file=os.getenv("LOG_FILE", cls.log_file),
         )
 
