@@ -105,22 +105,22 @@ class TelemetrySetup:
         # Initialize OpenLIT
         openlit.init(collect_gpu_stats=True, capture_message_content=False,application_name=CONST_SERVICE_NAME)
 
-        # # Setup OpenTelemetry logging
-        # self.logger_provider = LoggerProvider(
-        #     shutdown_on_exit=True,
-        #     resource=Resource.create({"service.name": CONST_SERVICE_NAME})
-        # )
-        # set_logger_provider(self.logger_provider)
-        #
-        # # Setup OTLP exporter if endpoint is configured
-        # otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-        # if otel_endpoint:
-        #     otlp_exporter = OTLPLogExporter(endpoint=otel_endpoint, insecure=True)
-        #     self.logger_provider.add_log_record_processor(
-        #         BatchLogRecordProcessor(otlp_exporter)
-        #     )
-        #
-        # self.logger_handler = LoggingHandler(level=logging.NOTSET, logger_provider=self.logger_provider)
+        # Setup OpenTelemetry logging
+        self.logger_provider = LoggerProvider(
+            shutdown_on_exit=True,
+            resource=Resource.create({"service.name": CONST_SERVICE_NAME})
+        )
+        set_logger_provider(self.logger_provider)
+
+        # Setup OTLP exporter if endpoint is configured
+        otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+        if otel_endpoint:
+            otlp_exporter = OTLPLogExporter(endpoint=otel_endpoint, insecure=True)
+            self.logger_provider.add_log_record_processor(
+                BatchLogRecordProcessor(otlp_exporter)
+            )
+
+        self.logger_handler = LoggingHandler(level=logging.NOTSET, logger_provider=self.logger_provider)
 
         return self.logger_handler
 
@@ -273,14 +273,15 @@ class EmbeddingGenerator:
             level=self.config.log_level,
             format="%(levelname)s | %(asctime)s | %(message)s",
             handlers=[
+                # cmnt out saving log file
                 # logging.FileHandler(self.config.log_file),
                 logging.StreamHandler(sys.stdout)
             ],
         )
 
-        # # Add telemetry handler
-        # telemetry_handler = self.telemetry.setup()
-        # logging.getLogger().addHandler(telemetry_handler)
+        # Add telemetry handler
+        telemetry_handler = self.telemetry.setup()
+        logging.getLogger().addHandler(telemetry_handler)
 
     def process_and_index(self) -> None:
         """Process documents and create embeddings."""
@@ -331,7 +332,6 @@ def main():
         sys.exit(1)
     finally:
         logging.info("succesfully finished embedding generation")
-        openlit.logger.info("testing openlit log")
         logging.shutdown()
 
 
