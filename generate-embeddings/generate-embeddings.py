@@ -322,8 +322,7 @@ class EmbeddingGenerator:
 
 def main():
     """Entry point for the embedding generator."""
-    # Set TZ explicitly
-    os.environ['TZ'] = 'UTC'  # or 'America/New_York', etc.
+    os.environ['TZ'] = 'Asia/Calcutta'  # or 'America/New_York', etc.
     time.tzset()
     try:
         config = Config.from_env()
