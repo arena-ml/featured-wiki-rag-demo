@@ -194,8 +194,8 @@ def process_and_index():
 
 def main():
     logging.getLogger().addHandler(handler)
-    # main_logger = logging.getLogger("generate.embeddings.main")
-    # main_logger.setLevel(logging.INFO)
+    main_logger = logging.getLogger("generate.embeddings.main")
+    main_logger.setLevel(logging.INFO)
     # openlit.logger.info("Generating embeddings start time: %.2f",time.time())
     # main_logger.info("start of generate.embeddings: %.2f",time.time() )
     try:
