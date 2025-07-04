@@ -286,12 +286,10 @@ class EmbeddingGenerator:
         if not Path(self.config.json_file_path).exists():
             raise FileNotFoundError(f"JSON file not found: {self.config.json_file_path}")
 
-        logging.debug(f"Starting embedding generation for {self.config.json_file_path}")
-
         with self.vector_store_manager.get_vectorstore() as vectorstore:
             documents = list(self.document_processor.parse_json(self.config.json_file_path))
             total_documents = len(documents)
-            logging.info(f"Total documents to process: {total_documents}")
+            logging.info(f"Total documents/chunks to process: {total_documents}")
 
             with tqdm(total=total_documents, desc="Processing documents") as pbar:
                 for idx, doc in enumerate(documents):
@@ -307,8 +305,6 @@ class EmbeddingGenerator:
                         logging.error(f"Error processing document {idx + 1}: {str(e)}")
                         raise
 
-        logging.info("Embedding generation completed successfully")
-
     def run(self) -> None:
         """Main execution method."""
         self.setup_logging()
@@ -322,8 +318,6 @@ class EmbeddingGenerator:
 
 def main():
     """Entry point for the embedding generator."""
-    # os.environ['TZ'] = 'Asia/Kolkata'  # or 'America/New_York', etc.
-    # time.tzset() # set to UTC time. commented out to test changing TZ var in dockerfile
     try:
         config = Config.from_env()
         generator = EmbeddingGenerator(config)
@@ -336,6 +330,7 @@ def main():
         sys.exit(1)
     finally:
         logging.info("succesfully finished embedding generation")
+        openlit.logger.info("testing openlit log")
         logging.shutdown()
 
 
