@@ -322,7 +322,7 @@ class EmbeddingGenerator:
 
 def main():
     """Entry point for the embedding generator."""
-    os.environ['TZ'] = 'Asia/Calcutta'  # or 'America/New_York', etc.
+    os.environ['TZ'] = 'Asia/Kolkata'  # or 'America/New_York', etc.
     time.tzset()
     try:
         config = Config.from_env()
