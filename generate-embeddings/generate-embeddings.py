@@ -12,6 +12,12 @@ import langchain_ollama
 from langchain_chroma import Chroma
 import chromadb
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("indexing.log"), logging.StreamHandler(sys.stdout)],
+)
+
 import openlit
 
 openlit.init(collect_gpu_stats=True, capture_message_content=False)
@@ -40,12 +46,6 @@ logger_provider.add_log_record_processor(BatchLogRecordProcessor(otlp_exporter))
 #  logger_provider.add_log_record_processor(BatchLogRecordProcessor(console_exporter))
 
 handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
-
-
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("indexing.log"), logging.StreamHandler(sys.stdout)],
-)
 
 shutdown_requested = False
 
@@ -195,7 +195,7 @@ def main():
     logging.getLogger().addHandler(handler)
     # main_logger = logging.getLogger("generate.embeddings.main")
     # main_logger.setLevel(logging.INFO)
-    # openlit.logger.info("Generating embeddings start time: %.2f",time.time())
+    openlit.logger.info("Generating embeddings start time: %.2f",time.time())
     # main_logger.info("start of generate.embeddings: %.2f",time.time() )
     try:
         logging.debug("Starting embedding generation process")
