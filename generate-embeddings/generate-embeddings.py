@@ -323,7 +323,7 @@ class EmbeddingGenerator:
 def main():
     """Entry point for the embedding generator."""
     # os.environ['TZ'] = 'Asia/Kolkata'  # or 'America/New_York', etc.
-    time.tzset() # set to UTC time.
+    # time.tzset() # set to UTC time. commented out to test changing TZ var in dockerfile
     try:
         config = Config.from_env()
         generator = EmbeddingGenerator(config)
