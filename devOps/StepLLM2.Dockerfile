@@ -6,7 +6,8 @@ ENV PYTHONUNBUFFERED=1 \
     KMP_DUPLICATE_LIB_OK=TRUE \
     OLLAMA_DEBUG=1 \
     PIP_INDEX_URL=https://pypi.org/simple \
-    PIP_PYPI_URL=https://pypi.org/simple 
+    PIP_PYPI_URL=https://pypi.org/simple \
+    TZ = "Asia/Calcutta"
 
 # Copy Python dependencies list
 COPY requirements.txt requirements.txt
@@ -25,8 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl -fsSL https://ollama.com/install.sh | sh && \
     (ollama serve > /dev/null 2>&1 &) && \
     sleep 15 && \
-    ollama pull phi3.5:3.8b-mini-instruct-q8_0 && \
-    ollama pull nomic-embed-text && \
+    ollama pull gemma3:12b-it-qat && \
     apt-get autoremove --purge  -y && \
     apt-get clean -y && \
     rm -rf /root/.cache/* /tmp/* /var/tmp/* /var/lib/apt/lists/*

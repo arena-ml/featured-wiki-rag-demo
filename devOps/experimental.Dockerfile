@@ -9,6 +9,7 @@ ENV PYTHONUNBUFFERED=1 \
     KMP_DUPLICATE_LIB_OK=TRUE \
     PIP_INDEX_URL=https://pypi.org/simple \
     PIP_PYPI_URL=https://pypi.org/simple
+    TZ = "Asia/Calcutta"
 
 
 # Copy and install Python dependencies

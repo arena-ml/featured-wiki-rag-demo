@@ -1,9 +1,22 @@
+#!/usr/bin/env python3
+"""
+Embedding Generator for WikiRC Articles
+
+This module processes WikiRC articles from JSON format and generates embeddings
+using Ollama, storing them in a ChromaDB vector database.
+"""
+
 import sys
 import os
 import time
 import json
 import logging
 import signal
+from pathlib import Path
+from typing import Generator, Optional, Dict, Any, List
+from dataclasses import dataclass
+from contextlib import contextmanager
+
 import langchain
 import langchain.schema
 import langchain.text_splitter
@@ -11,197 +24,319 @@ from tqdm import tqdm
 import langchain_ollama
 from langchain_chroma import Chroma
 import chromadb
-
 import openlit
-
-openlit.init(collect_gpu_stats=True, capture_message_content=False)
-
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-#  from opentelemetry.sdk._logs.export import ConsoleLogExporter
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 
-logger_provider = LoggerProvider()
-set_logger_provider(logger_provider)
-OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-
-otlp_exporter = OTLPLogExporter(endpoint=OTEL_COLLECTOR_ENDPOINT, insecure=True)
-logger_provider.add_log_record_processor(BatchLogRecordProcessor(otlp_exporter))
-
-#  console_exporter = ConsoleLogExporter()
-#  logger_provider.add_log_record_processor(BatchLogRecordProcessor(console_exporter))
-
-handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
+CONST_SERVICE_NAME = "generate.embeddings"
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("indexing.log"), logging.StreamHandler(sys.stdout)],
-)
+@dataclass
+class Config:
+    """Configuration settings for the embedding generator."""
 
-shutdown_requested = False
+    json_file_path: str = "WikiRC_StepOne.json"
+    vector_store_path: str = "article_embeddings_db"
+    collection_name: str = "article_embeddings"
+    embedding_model: str = "nomic-embed-text"
+    chunk_size: int = 2500
+    chunk_overlap: int = 50
+    log_level: int = logging.DEBUG
+    log_file: str = "indexing.log"
 
+    @classmethod
+    def from_env(cls) -> 'Config':
+        """Create configuration from environment variables."""
 
-def signal_handler(sig, frame):
-    global shutdown_requested
-    logging.warning(
-        "Shutdown signal received. Finishing current batch before exiting..."
-    )
-    shutdown_requested = True
+        # Handle log level conversion
+        log_level_str = os.getenv("LOG_LEVEL", "DEBUG").upper()
+        log_level_map = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL
+        }
+        log_level = log_level_map.get(log_level_str, logging.DEBUG)
 
-
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
-
-
-json_file_path = "WikiRC_StepOne.json"
-saveVectorStoreTo = "article_embeddings_db"
-
-chroma_client_settings = chromadb.config.Settings(
-    is_persistent=True,
-    persist_directory=saveVectorStoreTo,
-    anonymized_telemetry=False,
-)
-
-
-def parse_json(file_path):
-    try:
-        with open(file_path, "r") as file:
-            data = json.load(file)
-            logging.info(f"Successfully loaded JSON with {len(data)} articles")
-
-            for article_idx, article in enumerate(data):
-                if shutdown_requested:
-                    logging.info("Shutdown requested during JSON parsing. Exiting.")
-                    break
-
-                # start_time = time.time()
-                article_id = article.get("article_id", "")
-                title = str(article.get("title", ""))
-                logging.info(f"Parsing article {article_idx} - {title}")
-
-                for section in article.get("content", {}).get("sections", []):
-                    text = section.get("text", "")
-                    changes_content = (
-                        "\n".join(
-                            [
-                                f"Change Summary: {c['change_summary']}\nDiff: {c['diff']}\n"
-                                for c in section.get("changes", [])
-                            ]
-                        )
-                        if section.get("changes")
-                        else "No changes in this section."
-                    )
-
-                    content = (
-                        f"[Article Title: {title}]\n"
-                        f"[ID: {article_id}]\n"
-                        f"Full Text: {text}\n"
-                        f"Changes:\n{changes_content}\n"
-                    )
-
-                    # processing_time.record(time.time() - start_time)
-                    # documents_processed.add(1)
-
-                    yield langchain.schema.Document(
-                        page_content=content,
-                        metadata={
-                            "source": "https://api.wikimedia.org",
-                            "articleID": article_id,
-                            "articleTitle": title,
-                        },
-                    )
-    except Exception as e:
-        logging.error(f"Error parsing JSON: {str(e)}")
-        # errors_count.add(1)
-        sys.exit(1)
-
-
-def split_documents(documents):
-    try:
-        text_splitter = langchain.text_splitter.TokenTextSplitter(
-            chunk_size=2000, chunk_overlap=50
+        return cls(
+            json_file_path=os.getenv("JSON_FILE_PATH", cls.json_file_path),
+            vector_store_path=os.getenv("VECTOR_STORE_PATH", cls.vector_store_path),
+            collection_name=os.getenv("COLLECTION_NAME", cls.collection_name),
+            embedding_model=os.getenv("EMBEDDING_MODEL", cls.embedding_model),
+            chunk_size=int(os.getenv("CHUNK_SIZE", cls.chunk_size)),
+            chunk_overlap=int(os.getenv("CHUNK_OVERLAP", cls.chunk_overlap)),
+            log_level=log_level,
+            log_file=os.getenv("LOG_FILE", cls.log_file),
         )
-        for doc in documents:
-            splits = text_splitter.split_text(doc.page_content)
+
+
+class GracefulShutdown:
+    """Handles graceful shutdown on SIGINT and SIGTERM."""
+
+    def __init__(self):
+        self.shutdown_requested = False
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
+
+    def _signal_handler(self, sig, frame):
+        """Handle shutdown signals."""
+        logging.warning("Shutdown signal received. Finishing current batch before exiting...")
+        self.shutdown_requested = True
+
+    @property
+    def should_shutdown(self) -> bool:
+        """Check if shutdown was requested."""
+        return self.shutdown_requested
+
+
+class TelemetrySetup:
+    """Sets up OpenTelemetry logging and OpenLIT monitoring."""
+
+    def __init__(self):
+        self.logger_provider = None
+        self.handler = None
+
+    def setup(self) -> logging.Handler:
+        """Initialize telemetry and return logging handler."""
+        # Initialize OpenLIT
+        openlit.init(collect_gpu_stats=True, capture_message_content=False,application_name=CONST_SERVICE_NAME)
+
+        # Setup OpenTelemetry logging
+        self.logger_provider = LoggerProvider(
+            shutdown_on_exit=True,
+            resource=Resource.create({"service.name": CONST_SERVICE_NAME})
+        )
+        set_logger_provider(self.logger_provider)
+
+        # Setup OTLP exporter if endpoint is configured
+        otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+        if otel_endpoint:
+            otlp_exporter = OTLPLogExporter(endpoint=otel_endpoint, insecure=True)
+            self.logger_provider.add_log_record_processor(
+                BatchLogRecordProcessor(otlp_exporter)
+            )
+
+        self.handler = LoggingHandler(level=logging.NOTSET, logger_provider=self.logger_provider)
+        return self.handler
+
+
+class DocumentProcessor:
+    """Processes WikiRC JSON documents and splits them into chunks."""
+
+    def __init__(self, config: Config, shutdown_handler: GracefulShutdown):
+        self.config = config
+        self.shutdown_handler = shutdown_handler
+        self.text_splitter = langchain.text_splitter.TokenTextSplitter(
+            chunk_size=config.chunk_size,
+            chunk_overlap=config.chunk_overlap
+        )
+
+    def parse_json(self, file_path: str) -> Generator[langchain.schema.Document, None, None]:
+        """Parse JSON file and yield documents."""
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                data = json.load(file)
+                logging.debug(f"Successfully loaded JSON with {len(data)} articles")
+
+                for article_idx, article in enumerate(data):
+                    if self.shutdown_handler.should_shutdown:
+                        logging.error("Shutdown requested during JSON parsing. Exiting.")
+                        break
+
+                    yield from self._process_article(article_idx, article)
+
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logging.error(f"Error loading JSON file {file_path}: {str(e)}")
+            raise
+        except Exception as e:
+            logging.error(f"Unexpected error parsing JSON: {str(e)}")
+            raise
+
+    def _process_article(self, article_idx: int, article: Dict[str, Any]) -> Generator[
+        langchain.schema.Document, None, None]:
+        """Process a single article and yield document chunks."""
+        article_id = article.get("article_id", "")
+        title = str(article.get("title", ""))
+        logging.debug(f"Parsing article {article_idx} - {title}")
+
+        for section in article.get("content", {}).get("sections", []):
+            content = self._build_content(article_id, title, section)
+            document = langchain.schema.Document(
+                page_content=content,
+                metadata={
+                    "source": "https://api.wikimedia.org",
+                    "articleID": article_id,
+                    "articleTitle": title,
+                }
+            )
+            yield from self._split_document(document)
+
+    def _build_content(self, article_id: str, title: str, section: Dict[str, Any]) -> str:
+        """Build content string from article section."""
+        text = section.get("text", "")
+        changes_content = self._format_changes(section.get("changes", []))
+
+        return (
+            f"[Article Title: {title}]\n"
+            f"[ID: {article_id}]\n"
+            f"Full Text: {text}\n"
+            f"Changes:\n{changes_content}\n"
+        )
+
+    def _format_changes(self, changes: List[Dict[str, Any]]) -> str:
+        """Format changes into a readable string."""
+        if not changes:
+            return "No changes in this section."
+
+        return "\n".join([
+            f"Change Summary: {change['change_summary']}\nDiff: {change['diff']}\n"
+            for change in changes
+        ])
+
+    def _split_document(self, document: langchain.schema.Document) -> Generator[langchain.schema.Document, None, None]:
+        """Split document into chunks."""
+        try:
+            splits = self.text_splitter.split_text(document.page_content)
             for chunk in splits:
                 yield langchain.schema.Document(
-                    page_content=chunk, metadata=doc.metadata  # ✅ preserve metadata
+                    page_content=chunk,
+                    metadata=document.metadata
                 )
-    except Exception as e:
-        logging.error(f"Failed to split documents: {str(e)}")
-        sys.exit(1)
+        except Exception as e:
+            logging.error(f"Failed to split document: {str(e)}")
+            raise
 
 
-def process_and_index():
-    vectorstore = None
-    start_time = time.time()
+class VectorStoreManager:
+    """Manages the ChromaDB vector store operations."""
 
-    try:
-        embeddings = langchain_ollama.OllamaEmbeddings(model="nomic-embed-text")
+    def __init__(self, config: Config):
+        self.config = config
+        self.vectorstore: Optional[Chroma] = None
+        self.chroma_settings = chromadb.config.Settings(
+            is_persistent=True,
+            persist_directory=config.vector_store_path,
+            anonymized_telemetry=False,
+        )
 
-        documents = list(parse_json(json_file_path))
-        total_documents = len(documents)
-        logging.info(f"Total documents to process: {total_documents}")
+    @contextmanager
+    def get_vectorstore(self):
+        """Context manager for vector store operations."""
+        try:
+            embeddings = langchain_ollama.OllamaEmbeddings(model=self.config.embedding_model)
 
-        with tqdm(total=total_documents, desc="Processing documents") as pbar:
-            for idx, doc in enumerate(documents):
-                if shutdown_requested:
-                    logging.info("Shutdown requested. Exiting.")
-                    break
+            self.vectorstore = Chroma(
+                collection_name=self.config.collection_name,
+                client_settings=self.chroma_settings,
+                embedding_function=embeddings,
+                persist_directory=self.config.vector_store_path,
+            )
+            yield self.vectorstore
+        except Exception as e:
+            logging.error(f"Error initializing vector store: {str(e)}")
+            raise
+        finally:
+            if self.vectorstore:
+                # ChromaDB persists automatically
+                logging.info("Vector store operations completed")
 
-                try:
-                    texts = list(split_documents([doc]))
-                    # document_to_chunks.record(len(texts))
-                    if vectorstore is None:
-                        # vectorstore = langchain_community.vectorstores.FAISS.from_documents(texts, embeddings)
-                        vectorstore = Chroma(
-                            collection_name="article_embeddings",
-                            client_settings=chroma_client_settings,
-                            embedding_function=embeddings,
-                            persist_directory=saveVectorStoreTo,
-                            # Where to save data locally, remove if not necessary
-                        )
-                        vectorstore.add_documents(texts)
-                    else:
-                        vectorstore.add_documents(texts)
+    def add_documents(self, documents: List[langchain.schema.Document]) -> None:
+        """Add documents to the vector store."""
+        if not self.vectorstore:
+            raise RuntimeError("Vector store not initialized")
 
-                    logging.info(f"Processed {idx+1}/{total_documents} documents")
-                except Exception as e:
-                    logging.error(f"Error processing document: {str(e)}")
-                    # errors_count.add(1)
-                    sys.exit(1)
+        try:
+            self.vectorstore.add_documents(documents)
+        except Exception as e:
+            logging.error(f"Error adding documents to vector store: {str(e)}")
+            raise
 
-                pbar.update(1)
 
-        # if vectorstore:
-        #     vectorstore.save_local(saveVectorStoreTo)
-        #     logging.info("Vector store saved successfully")
-    except Exception as e:
-        logging.error(f"Unexpected error: {str(e)}")
-        # errors_count.add(1)
-        sys.exit(1)
-    finally:
-        logging.info(f"Process completed in {time.time() - start_time:.2f} seconds")
+class EmbeddingGenerator:
+    """Main class for generating embeddings from WikiRC articles."""
+
+    def __init__(self, config: Config):
+        self.config = config
+        self.shutdown_handler = GracefulShutdown()
+        self.telemetry = TelemetrySetup()
+        self.document_processor = DocumentProcessor(config, self.shutdown_handler)
+        self.vector_store_manager = VectorStoreManager(config)
+
+    def setup_logging(self) -> None:
+        """Configure logging with telemetry."""
+        logging.basicConfig(
+            level=self.config.log_level,
+            format="%(levelname)s | %(asctime)s | %(message)s",
+            handlers=[
+                # logging.FileHandler(self.config.log_file),
+                logging.StreamHandler(sys.stdout)
+            ],
+        )
+
+        # Add telemetry handler
+        telemetry_handler = self.telemetry.setup()
+        logging.getLogger().addHandler(telemetry_handler)
+
+    def process_and_index(self) -> None:
+        """Process documents and create embeddings."""
+        if not Path(self.config.json_file_path).exists():
+            raise FileNotFoundError(f"JSON file not found: {self.config.json_file_path}")
+
+        logging.debug(f"Starting embedding generation for {self.config.json_file_path}")
+
+        with self.vector_store_manager.get_vectorstore() as vectorstore:
+            documents = list(self.document_processor.parse_json(self.config.json_file_path))
+            total_documents = len(documents)
+            logging.info(f"Total documents to process: {total_documents}")
+
+            with tqdm(total=total_documents, desc="Processing documents") as pbar:
+                for idx, doc in enumerate(documents):
+                    if self.shutdown_handler.should_shutdown:
+                        logging.info("Shutdown requested. Exiting.")
+                        break
+
+                    try:
+                        self.vector_store_manager.add_documents([doc])
+                        logging.debug(f"Processed document {idx + 1}/{total_documents}")
+                        pbar.update(1)
+                    except Exception as e:
+                        logging.error(f"Error processing document {idx + 1}: {str(e)}")
+                        raise
+
+        logging.info("Embedding generation completed successfully")
+
+    def run(self) -> None:
+        """Main execution method."""
+        self.setup_logging()
+        try:
+            logging.info("Starting embedding generation")
+            self.process_and_index()
+        except Exception as e:
+            logging.error(f"Error occurred during embedding generation: {str(e)}")
+            sys.exit(1)
 
 
 def main():
-    logging.getLogger().addHandler(handler)
-    main_logger = logging.getLogger("generate.embeddings.main")
-    main_logger.setLevel(logging.INFO)
-    main_logger.info("start of generate.embeddings: %s",time.time() )
+    """Entry point for the embedding generator."""
+    # os.environ['TZ'] = 'Asia/Kolkata'  # or 'America/New_York', etc.
+    # time.tzset() # set to UTC time. commented out to test changing TZ var in dockerfile
     try:
-        logging.info("Starting indexing process")
-        process_and_index()
-        logging.info("Indexing process completed successfully")
-        main_logger.info("end of generate.embeddings: %s",time.time())
+        config = Config.from_env()
+        generator = EmbeddingGenerator(config)
+        generator.run()
+    except KeyboardInterrupt:
+        logging.error("Process interrupted by user")
+        sys.exit(0)
     except Exception as e:
-        logging.error(f"Unhandled exception in main: {str(e)}")
-        # errors_count.add(1)
+        logging.error(f"Fatal error: {str(e)}")
         sys.exit(1)
+    finally:
+        logging.info("succesfully finished embedding generation")
+        logging.shutdown()
 
 
 if __name__ == "__main__":
