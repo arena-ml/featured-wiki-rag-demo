@@ -98,30 +98,31 @@ class TelemetrySetup:
 
     def __init__(self):
         self.logger_provider = None
-        self.handler = None
+        self.logger_handler = None
 
     def setup(self) -> logging.Handler:
         """Initialize telemetry and return logging handler."""
         # Initialize OpenLIT
         openlit.init(collect_gpu_stats=True, capture_message_content=False,application_name=CONST_SERVICE_NAME)
 
-        # Setup OpenTelemetry logging
-        self.logger_provider = LoggerProvider(
-            shutdown_on_exit=True,
-            resource=Resource.create({"service.name": CONST_SERVICE_NAME})
-        )
-        set_logger_provider(self.logger_provider)
+        # # Setup OpenTelemetry logging
+        # self.logger_provider = LoggerProvider(
+        #     shutdown_on_exit=True,
+        #     resource=Resource.create({"service.name": CONST_SERVICE_NAME})
+        # )
+        # set_logger_provider(self.logger_provider)
+        #
+        # # Setup OTLP exporter if endpoint is configured
+        # otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+        # if otel_endpoint:
+        #     otlp_exporter = OTLPLogExporter(endpoint=otel_endpoint, insecure=True)
+        #     self.logger_provider.add_log_record_processor(
+        #         BatchLogRecordProcessor(otlp_exporter)
+        #     )
+        #
+        # self.logger_handler = LoggingHandler(level=logging.NOTSET, logger_provider=self.logger_provider)
 
-        # Setup OTLP exporter if endpoint is configured
-        otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-        if otel_endpoint:
-            otlp_exporter = OTLPLogExporter(endpoint=otel_endpoint, insecure=True)
-            self.logger_provider.add_log_record_processor(
-                BatchLogRecordProcessor(otlp_exporter)
-            )
-
-        self.handler = LoggingHandler(level=logging.NOTSET, logger_provider=self.logger_provider)
-        return self.handler
+        return self.logger_handler
 
 
 class DocumentProcessor:
@@ -277,9 +278,9 @@ class EmbeddingGenerator:
             ],
         )
 
-        # Add telemetry handler
-        telemetry_handler = self.telemetry.setup()
-        logging.getLogger().addHandler(telemetry_handler)
+        # # Add telemetry handler
+        # telemetry_handler = self.telemetry.setup()
+        # logging.getLogger().addHandler(telemetry_handler)
 
     def process_and_index(self) -> None:
         """Process documents and create embeddings."""
