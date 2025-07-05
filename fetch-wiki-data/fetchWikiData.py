@@ -18,7 +18,6 @@ from typing import Dict, List, Optional, Any, Set
 import requests
 from bs4 import BeautifulSoup
 
-import openlit
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
@@ -56,8 +55,7 @@ class TelemetrySetup:
 
     def setup(self) -> logging.Handler:
         """Initialize telemetry and return logging handler."""
-        # Initialize OpenLIT
-        openlit.init(collect_gpu_stats=True, capture_message_content=False,application_name=CONST_SERVICE_NAME)
+
 
         # Setup OpenTelemetry logging
         self.logging_provider = LoggerProvider(
