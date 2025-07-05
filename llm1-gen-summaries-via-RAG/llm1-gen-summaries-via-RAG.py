@@ -1,6 +1,19 @@
+#!/usr/bin/env python3
+"""
+RAG-based Article Summary Generator
+
+This script generates summaries for articles using Retrieval-Augmented Generation (RAG)
+with ChromaDB for vector storage and Ollama for LLM inference.
+"""
+
 import json
 import sys
 import logging
+import os
+from pathlib import Path
+from typing import List, Tuple, Dict, Any, Optional
+from dataclasses import dataclass
+from contextlib import contextmanager
 
 import langchain_chroma
 from rich.console import Console
@@ -10,188 +23,337 @@ import langchain_ollama
 import openlit
 import chromadb
 
-openlit.init(collect_gpu_stats=True, capture_message_content=False)
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.resources import Resource
+
+CONST_SERVICE_NAME = "llm1-gen-summaries-via-RAG"
 
 
-# Configure Logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+@dataclass
+class Config:
+    """Configuration settings for the RAG system."""
 
-console = Console(width=90)
-CONST_N_CTX = 35000
-CONST_MAX_CTX = 8200
+    # Service configuration
+    service_name: str = "llm1-gen-summaries-via-RAG"
 
-vectorstore_path = "article_embeddings_db"
-inputPath = "WikiRC_StepTwo.json"
-output_file_path = "llm1-summaries-using-embRAG.json"
+    # Model configuration
+    llm_model: str = "phi3.5:3.8b-mini-instruct-q8_0"
+    embedding_model: str = "nomic-embed-text"
 
-chroma_client_settings = chromadb.config.Settings(
-    is_persistent=True,
-    persist_directory=vectorstore_path,
-    anonymized_telemetry=False,
-)
+    # Context configuration
+    n_ctx: int = 35000
+    max_ctx: int = 8200
+
+    # Generation parameters
+    temperature: float = 0.6
+    top_k: int = 40
+    top_p: float = 0.95
+    min_p: float = 0.05
+
+    # File paths
+    vectorstore_path: str = "article_embeddings_db"
+    input_path: str = "WikiRC_StepTwo.json"
+    output_path: str = "llm1-summaries-using-embRAG.json"
+
+    # Retrieval parameters
+    retrieval_k: int = 50
+    retrieval_fetch_k: int = 300
+
+    # Logging
+    # Handle log level conversion
+    log_level_str = os.getenv("LOG_LEVEL", "DEBUG")
+    log_level_map = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL
+    }
+    log_level = log_level_map.get(log_level_str, logging.DEBUG)
 
 
-def remove_underscores(input_string):
-    return input_string.replace("_", " ")
+class TelemetrySetup:
+    """Handles OpenTelemetry logging and OpenLIT monitoring setup."""
+
+    def __init__(self, service_name: str):
+        self.service_name = service_name
+        self.logging_provider = None
+        self.logging_handler = None
+
+    def setup(self) -> logging.Handler:
+        """Initialize telemetry and return logging handler."""
+        # Setup OpenTelemetry logging
+        self.logging_provider = LoggerProvider(
+            shutdown_on_exit=True,
+            resource=Resource.create({"service.name": self.service_name})
+        )
+        set_logger_provider(self.logging_provider)
+
+        # Setup OTLP exporter if endpoint is configured
+        otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+        if otel_endpoint:
+            otlp_exporter = OTLPLogExporter(endpoint=otel_endpoint, insecure=True)
+            self.logging_provider.add_log_record_processor(
+                BatchLogRecordProcessor(otlp_exporter)
+            )
+
+        self.logging_handler = LoggingHandler(
+            level=logging.NOTSET,
+            logger_provider=self.logging_provider
+        )
+
+        return self.logging_handler
 
 
-def construct_prompt(context: str) -> str:
-    """
-    Constructs the prompt for the language model.
+class RAGSummaryGenerator:
+    """Main class for generating article summaries using RAG."""
 
-    Args:
-        context (str): The retrieved context to base the answer on
-        question (str): The user's question
+    def __init__(self, config: Config):
+        self.config = config
+        self.console = Console(width=90)
+        self.embeddings = None
+        self.vectorstore = None
+        self.telemetry = TelemetrySetup(config.service_name)
 
-    Returns:
-        str: The formatted prompt
-    """
-    return f"""
-Follow this three instructions:
-1.Go through the given article then provide a catchy summary, 
-consider historical context, significance, key aspects and recent changes made in the article.
-2..Your responses should be strictly from the article provided nothing else.
-3.Do not mention that it's a summary, and also do not mention anything about instructions given to you.
+        self._setup_logging()
+        self._setup_monitoring()
 
-Article :
+    def _setup_logging(self) -> None:
+        """Configure logging with telemetry."""
+        logging.basicConfig(
+            level=self.config.log_level,
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            handlers=[logging.StreamHandler(sys.stdout)],
+        )
+
+        # Add telemetry handler
+        telemetry_handler = self.telemetry.setup()
+        logging.getLogger().addHandler(telemetry_handler)
+
+    def _setup_monitoring(self) -> None:
+        """Initialize OpenLIT monitoring."""
+        openlit.init(collect_gpu_stats=True, capture_message_content=False,application_name=CONST_SERVICE_NAME)
+
+    def _initialize_embeddings(self) -> None:
+        """Initialize the embeddings model."""
+        try:
+            self.embeddings = langchain_ollama.OllamaEmbeddings(
+                model=self.config.embedding_model
+            )
+            logging.info(f"Initialized embeddings model: {self.config.embedding_model}")
+        except Exception as e:
+            logging.error(f"Failed to initialize embeddings: {e}")
+            raise
+
+    def _initialize_vectorstore(self) -> None:
+        """Initialize the ChromaDB vectorstore."""
+        try:
+            chroma_client_settings = chromadb.config.Settings(
+                is_persistent=True,
+                persist_directory=self.config.vectorstore_path,
+                anonymized_telemetry=False,
+            )
+
+            self.vectorstore = langchain_chroma.Chroma(
+                persist_directory=self.config.vectorstore_path,
+                embedding_function=self.embeddings,
+                collection_name="article_embeddings",
+                client_settings=chroma_client_settings,
+            )
+            logging.info(f"Initialized vectorstore at: {self.config.vectorstore_path}")
+        except Exception as e:
+            logging.error(f"Failed to initialize vectorstore: {e}")
+            raise
+
+    def _load_articles(self) -> List[Dict[str, Any]]:
+        """Load articles from the input file."""
+        try:
+            input_file = Path(self.config.input_path)
+            if not input_file.exists():
+                raise FileNotFoundError(f"Input file not found: {self.config.input_path}")
+
+            with open(input_file, "r", encoding="utf-8") as file:
+                articles = json.load(file)
+
+            if not articles:
+                raise ValueError("The input file is empty or contains no articles.")
+
+            logging.info(f"Loaded {len(articles)} articles from {self.config.input_path}")
+            return articles
+
+        except Exception as e:
+            logging.error(f"Failed to load articles: {e}")
+            raise
+
+    def _save_results(self, articles: List[Dict[str, Any]]) -> None:
+        """Save the processed articles to the output file."""
+        try:
+            output_file = Path(self.config.output_path)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_file, "w", encoding="utf-8") as file:
+                json.dump(articles, file, indent=4, ensure_ascii=False)
+
+            logging.info(f"Results saved to {self.config.output_path}")
+        except Exception as e:
+            logging.error(f"Failed to save results: {e}")
+            raise
+
+    @staticmethod
+    def _normalize_title(title: str) -> str:
+        """Remove underscores from title."""
+        return title.replace("_", " ")
+
+    def _construct_prompt(self, context: str) -> str:
+        """Construct the prompt for the language model."""
+        return f"""
+Follow these three instructions:
+1. Go through the given article then provide a catchy summary, 
+   consider historical context, significance, key aspects and recent changes made in the article.
+2. Your responses should be strictly from the article provided nothing else.
+3. Do not mention that it's a summary, and also do not mention anything about instructions given to you.
+
+Article:
 {context}
 """
 
-
-def PhiQnA(query: str, aID: str, retriever) -> tuple[str, list]:
-    """
-    Perform Q&A based on the context retrieved from the vectorstore.
-
-    Args:
-        question (str): The user's question.
-        retriever: The initialized retriever object.
-
-    Returns:
-        tuple: Response string and the retrieved documents.
-    """
-    docs = []
-
-    # Step 1: Document Retrieval
-    try:
-        docs = retriever.max_marginal_relevance_search(
-            query=query, filter={"articleID": aID}, k=50, fetch_k=300
-        )
-        logging.info(f"Type of retriever output: {type(docs)}, len_docs: {len(docs)}")
-        if not docs:
-            # empty_results_counter.add(1, {"query": query, "queryType": "max_marginal_relevance_search"})
-
-            logging.warning("No documents retrieved for the question")
-            return "NULL", []
-    except Exception as e:
-        logging.error(f"Error during document retrieval: {e}")
-        logging.error(
-            f"Retriever type: {type(retriever)}"
-        )  # Add this to check retriever type
-        return "An error occurred while retrieving relevant documents.", []
-
-    # Step 2: Context Combination and Prompt Construction
-    try:
-        context = "\n".join(doc.page_content for doc in docs)
-        prompt = construct_prompt(context)
-    except Exception as e:
-        logging.error(f"Error during prompt construction: {e}")
-        return "An error occurred while preparing the response.", docs
-
-    # Step 3: LLM Response Generation
-    try:
-        with console.status("[bold green]Generating response..."):
-            genOpts = {
-                "num_predict": CONST_MAX_CTX,
-                "num_ctx": CONST_N_CTX,
-                "temperature": 0.6,
-                "top_k": 40,
-                "top_p": 0.95,
-                "min_p": 0.05,
-            }
-
-            response: ollama.ChatResponse = ollama.chat(
-                model="phi3.5:3.8b-mini-instruct-q8_0",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    },
-                ],
-                options=genOpts,
+    def _retrieve_documents(self, query: str, article_id: str) -> List[Any]:
+        """Retrieve relevant documents from the vectorstore."""
+        try:
+            docs = self.vectorstore.max_marginal_relevance_search(
+                query=query,
+                filter={"articleID": article_id},
+                k=self.config.retrieval_k,
+                fetch_k=self.config.retrieval_fetch_k
             )
 
-        logging.info(f"Raw model output: {response.message}")
+            logging.info(f"Retrieved {len(docs)} documents for article {article_id}")
+            return docs
 
-        response = response.message.content
-    except Exception as e:
-        logging.error(f"Error during LLM response generation: {e}")
-        return "An error occurred while generating the model response.", docs
+        except Exception as e:
+            logging.error(f"Error during document retrieval: {e}")
+            return []
 
-    return response, docs
+    def _generate_response(self, context: str) -> str:
+        """Generate response using the LLM."""
+        try:
+            prompt = self._construct_prompt(context)
 
+            gen_options = {
+                "num_predict": self.config.max_ctx,
+                "num_ctx": self.config.n_ctx,
+                "temperature": self.config.temperature,
+                "top_k": self.config.top_k,
+                "top_p": self.config.top_p,
+                "min_p": self.config.min_p,
+            }
 
-def main():
-    # Initialize embeddings Model
-    try:
-        global embeddings
-        embeddings = langchain_ollama.OllamaEmbeddings(model="nomic-embed-text")
-    except Exception as e:
-        logging.error(f"Failed to initialize embeddings: {e}")
+            with self.console.status("[bold green]Generating response..."):
+                response = ollama.chat(
+                    model=self.config.llm_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    options=gen_options,
+                )
 
-    try:
-        vectorstore = langchain_chroma.Chroma(
-            persist_directory=vectorstore_path,
-            embedding_function=embeddings,
-            collection_name="article_embeddings",
-            client_settings=chroma_client_settings,
-        )
-    except Exception as e:
-        logging.error(f"Failed to load vectorstore: {e}")
-        sys.exit(1)
+            result = response.message.content
+            logging.info("Successfully generated response")
+            return result
 
-    try:
-        with open(inputPath, "r") as file:
-            articles = json.load(file)
-        if not articles:
-            logging.error("The queries file is empty.")
-            sys.exit(1)
-    except Exception as e:
-        logging.error(f"Failed to read queries file: {e}")
-        sys.exit(1)
+        except Exception as e:
+            logging.error(f"Error during LLM response generation: {e}")
+            return "An error occurred while generating the model response."
 
-    try:
-        updatedArticle = []
-        for article in articles:
-            aTitle = remove_underscores(str(article["title"]))
-            aID = str(article["article_id"])
-            retrieverQuery = aTitle + " " + aID + " " + aTitle + " " + aID
+    def _process_article(self, article: Dict[str, Any]) -> Dict[str, Any]:
+        """Process a single article to generate its summary."""
+        try:
+            title = self._normalize_title(str(article["title"]))
+            article_id = str(article["article_id"])
 
-            console.print(Markdown(f"### Retriver Query:\n {retrieverQuery}"))
+            # Create retrieval query
+            retrieval_query = f"{title} {article_id} {title} {article_id}"
 
-            response, retrivedDocsList = PhiQnA(retrieverQuery, aID, vectorstore)
+            self.console.print(Markdown(f"### Retrieval Query:\n {retrieval_query}"))
+
+            # Retrieve documents
+            docs = self._retrieve_documents(retrieval_query, article_id)
+
+            if not docs:
+                logging.warning(f"No documents retrieved for article {article_id}")
+                article["llm1embResponse"] = "NULL"
+                return article
+
+            # Combine context and generate response
+            context = "\n".join(doc.page_content for doc in docs)
+            response = self._generate_response(context)
+
+            # Update article with results
             article["llm1embResponse"] = response
 
             if response != "NULL":
-                retrivedDocs = " ".join(str(doc) for doc in retrivedDocsList)
-                article["retrivedDocs"] = retrivedDocs
+                retrieved_docs = " ".join(str(doc) for doc in docs)
+                article["retrivedDocs"] = retrieved_docs
 
-            updatedArticle.append(article)
+            self.console.print(Markdown(f"### Response:\n{response}"))
+            self.console.print("\n" + "=" * 50 + "\n")
 
-            console.print(Markdown(f"### Response:\n{response}"))
-            console.print("\n" + "=" * 50 + "\n")
-    except Exception as e:
-        logging.error(f"Summary Generation failed:{e}")
+            return article
 
-    del embeddings
+        except Exception as e:
+            logging.error(f"Error processing article {article.get('article_id', 'unknown')}: {e}")
+            article["llm1embResponse"] = "An error occurred while processing this article."
+            return article
 
+    @contextmanager
+    def _resource_manager(self):
+        """Context manager for resource cleanup."""
+        try:
+            self._initialize_embeddings()
+            self._initialize_vectorstore()
+            yield
+        finally:
+            # Cleanup resources
+            if hasattr(self, 'embeddings'):
+                del self.embeddings
+            logging.info("Resources cleaned up")
+
+    def run(self) -> None:
+        """Main execution method."""
+        try:
+            with self._resource_manager():
+                # Load articles
+                articles = self._load_articles()
+
+                # Process each article
+                updated_articles = []
+                for i, article in enumerate(articles, 1):
+                    logging.info(f"Processing article {i}/{len(articles)}")
+                    processed_article = self._process_article(article)
+                    updated_articles.append(processed_article)
+
+                # Save results
+                self._save_results(updated_articles)
+
+                logging.info("Summary generation completed successfully")
+
+        except Exception as e:
+            logging.error(f"Fatal error in main execution: {e}")
+            sys.exit(1)
+
+
+def main():
+    """Main entry point."""
     try:
-        with open(output_file_path, "w") as outfile:
-            json.dump(updatedArticle, outfile, indent=4)
-        logging.info(f"Responses saved to {output_file_path}")
+        config = Config()
+        generator = RAGSummaryGenerator(config)
+        generator.run()
+    except KeyboardInterrupt:
+        logging.info("Process interrupted by user")
+        sys.exit(0)
     except Exception as e:
-        logging.error(f"Failed to write output file: {e}")
+        logging.error(f"Unexpected error: {e}")
         sys.exit(1)
 
 
