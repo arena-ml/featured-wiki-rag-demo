@@ -6,24 +6,34 @@ Fetch Wikipedia articles with recent changes in readable format and store in jso
 import argparse
 import hashlib
 import json
-import logging
 import re
 import random
+import os
+import sys
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Dict, List, Optional, Any, Set
-
 import requests
 from bs4 import BeautifulSoup
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()],
-)
-logger = logging.getLogger("fetch_wikiArticles")
+import openlit
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.resources import Resource
+
+CONST_SERVICE_NAME = "fetch-wiki-data"
+
+# # Configure logging
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+#     handlers=[logging.StreamHandler()],
+# )
+# logging = logging.getlogging("fetch_wikiArticles")
 
 # Configure session for reuse
 session = requests.Session()
@@ -37,6 +47,38 @@ session.headers.update(
 
 )
 
+class TelemetrySetup:
+    """Sets up OpenTelemetry logging and OpenLIT monitoring."""
+
+    def __init__(self):
+        self.logging_provider = None
+        self.logging_handler = None
+
+    def setup(self) -> logging.Handler:
+        """Initialize telemetry and return logging handler."""
+        # Initialize OpenLIT
+        openlit.init(collect_gpu_stats=True, capture_message_content=False,application_name=CONST_SERVICE_NAME)
+
+        # Setup OpenTelemetry logging
+        self.logging_provider = LoggerProvider(
+            shutdown_on_exit=True,
+            resource=Resource.create({"service.name": CONST_SERVICE_NAME})
+        )
+        set_logger_provider(self.logging_provider)
+
+        # Setup OTLP exporter if endpoint is configured
+        otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+        if otel_endpoint:
+            otlp_exporter = OTLPLogExporter(endpoint=otel_endpoint, insecure=True)
+            self.logging_provider.add_log_record_processor(
+                BatchLogRecordProcessor(otlp_exporter)
+            )
+
+        self.logging_handler = LoggingHandler(level=logging.NOTSET, logger_provider=self.logging_provider)
+
+        return self.logging_handler
+
+
 
 class ArticlesWithRecentChanges:
     """Fetch Wikipedia articles with recent changes."""
@@ -48,12 +90,41 @@ class ArticlesWithRecentChanges:
         Args:
             config: Dictionary containing configuration settings
         """
+
+        # Handle log level conversion
+        log_level_str = config.get("LOG_LEVEL", "DEBUG")
+        log_level_map = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL
+        }
+        log_level = log_level_map.get(log_level_str, logging.DEBUG)
+
         self.hours = config["hours"]
         self.output_path = config["output_path"]
         self.api_url = "https://en.wikipedia.org/w/api.php"
         self.cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.hours)
         self.max_workers = config.get("max_workers", 10)
         self.max_articles = config.get("max_articles", 10)
+        self.telemetry = TelemetrySetup()
+        self.log_level = log_level
+
+
+    def setup_logging(self) -> None:
+        """Configure logging with telemetry."""
+        logging.basicConfig(
+            level=self.log_level,
+            format="%(levelname)s | %(asctime)s | %(message)s",
+            handlers=[
+                logging.StreamHandler(sys.stdout)
+            ],
+        )
+
+        # Add telemetry handler
+        telemetry_handler = self.telemetry.setup()
+        logging.getLogger().addHandler(telemetry_handler)
 
     # Slightly improves performance (since no self binding is needed: Prevents unnecessary access to the class instance)
     @staticmethod
@@ -97,7 +168,7 @@ class ArticlesWithRecentChanges:
         """
         # Compile regex patterns once for better performance
         ref_pattern = re.compile(r"==\s*(References|External links)\s*==.*", re.DOTALL)
-        citation_pattern = re.compile(r"\[[0-9]+\]")
+        citation_pattern = re.compile(r"\[[0-9]+]")
         newline_pattern = re.compile(r"\n{2,}")
 
         # Apply patterns
@@ -121,12 +192,12 @@ class ArticlesWithRecentChanges:
         # Add headers to simulate a browser request
         headers = {"accept": "application/json"}
 
-        logger.info(f"Fetching data from: {url}")
+        logging.info(f"Fetching data from: {url}")
         try:
             response = session.get(url, headers=headers)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch data for {date}. Error: {e}")
+            logging.error(f"Failed to fetch data for {date}. Error: {e}")
             return []
 
         articlesList = []
@@ -138,7 +209,7 @@ class ArticlesWithRecentChanges:
             if tfa and tfa.get("type") == "standard":
                 articlesList.append(tfa["title"])
         except Exception as e:
-            logger.error(f"Error fetching featured article title: {e}")
+            logging.error(f"Error fetching featured article title: {e}")
 
         # Process most read articles
         try:
@@ -147,7 +218,7 @@ class ArticlesWithRecentChanges:
                 if article.get("type", "") == "standard":
                     articlesList.append(article["title"])
         except Exception as e:
-            logger.error(f"Error fetching most read article titles: {e}")
+            logging.error(f"Error fetching most read article titles: {e}")
 
         # Process news articles
         try:
@@ -157,7 +228,7 @@ class ArticlesWithRecentChanges:
                     if link.get("type", "") == "standard":
                         articlesList.append(link["title"])
         except Exception as e:
-            logger.error(f"Error fetching news article titles: {e}")
+            logging.error(f"Error fetching news article titles: {e}")
 
         # Process on this day articles
         try:
@@ -166,9 +237,9 @@ class ArticlesWithRecentChanges:
                 for page in pages:
                     articlesList.append(page["title"])
         except Exception as e:
-            logger.error(f"Error fetching on this day articles titles, error: {e}")
+            logging.error(f"Error fetching on this day articles titles, error: {e}")
 
-        logger.info(f"Found {len(articlesList)} featured articles")
+        logging.info(f"Found {len(articlesList)} featured articles")
         return articlesList
 
     def getArticleLists(self) -> Set[str]:
@@ -208,7 +279,7 @@ class ArticlesWithRecentChanges:
             response = session.get(self.api_url, params=params)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching article text for '{page_title}': {e}")
+            logging.error(f"Error fetching article text for '{page_title}': {e}")
             return ""
 
         data = response.json()
@@ -273,7 +344,7 @@ class ArticlesWithRecentChanges:
             response = session.get(self.api_url, params=params)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching revisions for '{page_title}': {e}")
+            logging.error(f"Error fetching revisions for '{page_title}': {e}")
             return []
 
         data = response.json()
@@ -347,12 +418,12 @@ class ArticlesWithRecentChanges:
                         ]
                     },
                 }
-                logger.info(
+                logging.info(
                     f"Found {len(changes)} recent changes for '{article_title}'"
                 )
                 return article_data
         except Exception as e:
-            logger.error(f"Error processing article '{article_title}': {e}")
+            logging.error(f"Error processing article '{article_title}': {e}")
 
         return None
 
@@ -360,22 +431,24 @@ class ArticlesWithRecentChanges:
         """
         Process all articleTitles and generate output using parallel processing.
         """
+        self.setup_logging()
+
         dataset = []
 
-        logger.info(f"Fetching articles with changes in the last {self.hours} hours")
+        logging.info(f"Fetching articles with changes in the last {self.hours} hours")
 
         try:
-            logger.info(
+            logging.info(
                 "Fetching most viewed, most edited and articles linked to wikinews"
             )
 
             article_titles = self.getArticleLists()
 
-            logger.info(
+            logging.info(
                 f"Processing {len(article_titles)} unique and randomly choosen articles"
             )
         except Exception as e:
-            logger.error(f"Error fetching articles titles: {e}")
+            logging.error(f"Error fetching articles titles: {e}")
             article_titles = set()
 
         # Process articles in parallel
@@ -394,7 +467,7 @@ class ArticlesWithRecentChanges:
                     if result:
                         dataset.append(result)
                 except Exception as e:
-                    logger.error(f"Error processing article '{article_title}': {e}")
+                    logging.error(f"Error processing article '{article_title}': {e}")
 
         # Generate summary statistics
         if dataset:
@@ -405,11 +478,11 @@ class ArticlesWithRecentChanges:
             with open(self.output_path, "w") as f:
                 json.dump(dataset, f, ensure_ascii=False, indent=2)
 
-            logger.info(
+            logging.info(
                 f"Saved data for {len(dataset)} articles with recent changes to {self.output_path}"
             )
         else:
-            logger.info("No recent changes found. Dataset not created.")
+            logging.info("No recent changes found. Dataset not created.")
 
 
 def parse_args() -> argparse.Namespace:
@@ -452,6 +525,7 @@ def main() -> None:
         "output_path": args.output,
         "max_workers": args.threads,
         "max_articles": args.articles,
+        "LOG_LEVEL": logging.DEBUG,
     }
 
     wrc = ArticlesWithRecentChanges(config)

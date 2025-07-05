@@ -31,7 +31,7 @@ from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 
-CONST_SERVICE_NAME = "generate.embeddings"
+CONST_SERVICE_NAME = "generate-embeddings"
 
 
 @dataclass
