@@ -44,6 +44,15 @@ def clean_text(text: str) -> str:
     text = re.sub(r"\n{2,}", "\n", text).strip()
     return text
 
+@staticmethod
+def stripThinkingPart(response_text: str) -> str:
+    """Remove <thinking>...</thinking> part."""
+    # Remove thinking tags
+    parts = response_text.split("</think>")
+    main_part = parts[1].strip() if len(parts) > 1 else response_text.strip()
+
+    return main_part
+
 
 # Initialize Model
 
@@ -72,8 +81,8 @@ def generate_summary(article):
     prompt = f"""
 Remember to not explain your actions or make any reference to requests made to you, in your response.
 Instruction: 
-Return summary of article given below with an attention-catching start.
-Ensure to capture the following segemnts:
+Write summary of article given below with an attention-catching start.
+Ensure, summary capture the following aspects:
 - main points
 - themes
 - key aspects
@@ -94,12 +103,13 @@ Recent Changes made in the article:
                 "num_predict": CONST_MAX_CTX,
                 "num_ctx": CONST_N_CTX,
                 "temperature": 0.7,
-                "top_k": 20,
+                "top_k": 40,
                 "top_p": 0.8,
-                "min_p": 0.0,
+                "min_p": 0.05,
             }
             output: ollama.ChatResponse = ollama.chat(
                 model="hf.co/unsloth/Jan-nano-128k-GGUF:BF16",
+                # model = "hf.co/Menlo/Jan-nano-128k-gguf:Q8_0",
                 messages=[
                     {
                         "role": "user",
@@ -109,11 +119,12 @@ Recent Changes made in the article:
                 options=genOpts,
             )
 
-    except Exception as e:
-        logging.error(f"Failed to load model: {e}")
+    except Exception as promptError:
+        logging.error(f"Failed to load model: {promptError}")
         return "NULL"
 
     response = output.message.content
+    response= stripThinkingPart(response)
     return response
 
 
