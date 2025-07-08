@@ -1,7 +1,9 @@
 import json
 import re
 import sys
+import os
 import ollama
+from ollama import RequestError,ResponseError
 import logging
 from rich.console import Console
 from rich.markdown import Markdown
@@ -22,6 +24,7 @@ CONST_MAX_CTX = 8200
 
 articles_file_path = "WikiRC_StepOne.json"
 output_file_path = "llm2-summaries-using-zeroshot.json"
+llmModel = os.getenv("MODEL_NAME")
 
 
 # Load articles
@@ -85,7 +88,7 @@ Article:
 
 Recent Changes made in the article:
 {recenttChange}
-    """
+"""
 
     try:
         with console.status("[bold green]Generating summary..."):
@@ -99,7 +102,7 @@ Recent Changes made in the article:
                 "min_p": 0.05,
             }
             output: ollama.ChatResponse = ollama.chat(
-                model="gemma3:12b-it-qat",
+                model=llmModel,
                 messages=[
                     {
                         "role": "user",
@@ -109,8 +112,16 @@ Recent Changes made in the article:
                 options=genOpts,
             )
 
-    except Exception as e:
-        logging.error(f"Failed to load model: {e}")
+    except RequestError as chatFailed:
+        logging.error(f"Request failed: {chatFailed}")
+        return "NULL"
+
+    except ResponseError as chatFailed:
+        logging.error(f"Response error: {chatFailed}")
+        return "NULL"
+
+    except Exception as chatFailed:
+        logging.error(f"Failed to load model: {chatFailed}")
         return "NULL"
 
     response = output.message.content

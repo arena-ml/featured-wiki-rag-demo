@@ -1,7 +1,9 @@
 import json
 import re
 import sys
+import os
 import ollama
+from ollama import RequestError,ResponseError
 import logging
 from rich.console import Console
 from rich.markdown import Markdown
@@ -22,6 +24,7 @@ CONST_MAX_CTX = 8200
 
 articles_file_path = "WikiRC_StepOne.json"
 output_file_path = "llm3-summaries-using-zeroshot.json"
+llmModel = os.getenv("MODEL_NAME")
 
 
 # Load articles
@@ -44,8 +47,7 @@ def clean_text(text: str) -> str:
     text = re.sub(r"\n{2,}", "\n", text).strip()
     return text
 
-@staticmethod
-def extract_json_response(response_text: str) -> str:
+def stripThinkingPart(response_text: str) -> str:
     """Remove <thinking>...</Thinking> part"""
     
     parts = response_text.split("</think>")
@@ -91,6 +93,7 @@ Article:
 
 Recent Changes made in the article:
 {recenttChange}
+/think
     """
 
     try:
@@ -105,7 +108,8 @@ Recent Changes made in the article:
                 "min_p": 0.05,
             }
             output: ollama.ChatResponse = ollama.chat(
-                model="hf.co/unsloth/Jan-nano-128k-GGUF:BF16",
+                # model="hf.co/unsloth/Jan-nano-128k-GGUF:BF16",
+                model=llmModel,
                 messages=[
                     {
                         "role": "user",
@@ -115,11 +119,18 @@ Recent Changes made in the article:
                 options=genOpts,
             )
 
-    except Exception as e:
-        logging.error(f"Failed to load model: {e}")
+    except RequestError as chatFailed:
+        logging.error(f"Request failed: {chatFailed}")
+        return "NULL"
+    except ResponseError as chatFailed:
+        logging.error(f"Response error: {chatFailed}")
+        return "NULL"
+    except Exception as chatFailed:
+        logging.error(f"Failed to load model: {chatFailed}")
         return "NULL"
 
     response = output.message.content
+    response = stripThinkingPart(response)
     return response
 
 

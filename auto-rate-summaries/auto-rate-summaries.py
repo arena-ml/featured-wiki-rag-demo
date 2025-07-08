@@ -34,7 +34,7 @@ class Config:
     OUTPUT_FILE_PATH: str = "WikiRC_StepSix.json"
     N_CTX: int = 40000
     MAX_CTX: int = 900
-    MODEL_NAME: str = "hf.co/lmstudio-community/DeepSeek-R1-Distill-Llama-8B-GGUF:Q8_0"
+    MODEL_NAME: str =  os.getenv("MODEL_NAME")
     TEMPERATURE: float = 0.4
     CONSOLE_WIDTH: int = 120
 
