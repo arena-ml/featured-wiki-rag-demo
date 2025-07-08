@@ -1,6 +1,7 @@
 import json
 import re
 import sys
+import os
 import ollama
 import logging
 from rich.console import Console
@@ -21,6 +22,7 @@ CONST_MAX_CTX = 8200
 # Paths
 articles_file_path = "WikiRC_StepOne.json"
 output_file_path = "llm1-summaries-using-zeroshot.json"
+llmModel = os.getenv("MODEL_NAME")
 
 
 # Load articles
@@ -98,7 +100,7 @@ Recent Changes made in the article:
                 "min_p": 0.05,
             }
             output: ollama.ChatResponse = ollama.chat(
-                model="phi3.5:3.8b-mini-instruct-q8_0",
+                model=llmModel,
                 messages=[
                     {
                         "role": "user",

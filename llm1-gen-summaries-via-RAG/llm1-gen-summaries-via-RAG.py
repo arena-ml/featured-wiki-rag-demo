@@ -40,8 +40,8 @@ class Config:
     service_name: str = "llm1-gen-summaries-via-RAG"
 
     # Model configuration
-    llm_model: str = "phi3.5:3.8b-mini-instruct-q8_0"
-    embedding_model: str = "nomic-embed-text"
+    llm_model: str = os.getenv("MODEL_NAME")
+    embedding_model: str = os.getenv("EMB_MODEL_NAME")
 
     # Context configuration
     n_ctx: int = 35000
