@@ -215,6 +215,27 @@ class SummaryEvaluator:
         self.response_processor = ResponseProcessor()
 
     @staticmethod
+    def log_empty_string_keys_in_dict(data_dict):
+        """
+        Checks a dictionary where all values are expected to be strings.
+        Logs an error if any string value is None, empty, or consists only of whitespace.
+
+        Args:
+            data_dict (dict): The dictionary to check.
+        """
+        if not isinstance(data_dict, dict):
+            logging.error(f"Error: Input is not a dictionary. Type: {type(data_dict)}")
+            sys.exit(1)
+
+        for key, value in data_dict.items():
+            if value is None:
+                logging.error(f"No summary found for'{key}', has a None value (expected string).")
+                sys.exit(1)
+            elif not value.strip():  # This checks for "" or "   "
+                logging.error(f"No summary found for '{key}', has an empty or whitespace-only string value.")
+                sys.exit(1)
+
+    @staticmethod
     def _create_evaluation_prompt(self, article: Dict[str, Any]) -> str:
         """Create the evaluation prompt for the LLM."""
         sections = article.get("content", {}).get("sections", [])
@@ -226,25 +247,29 @@ class SummaryEvaluator:
             "llm2Summary": article.get("llm2Summary", ""),
             "llm3Summary": article.get("llm3Summary", ""),
         }
+
+        self.log_empty_string_keys_in_dict(summaries)
+
         n_summaries = len(summaries)
+        summary_keys = list(summaries.keys())
 
         return f"""
 I have given you an article and {n_summaries} summaries on the article, 
-provide score out of ten for each summary on these four metrics — Coherence, Consistency, Fluency, and Relevance.
+provide score out of ten for {summary_keys}  on these four metrics — Coherence, Consistency, Fluency, and Relevance.
 Scores Should be in JSON format.
 Your response should contain no comments, notes, or explanations.
 
 [Article]:  
 {main_text}
 
-[llm1-rag-Summary]:  
+[llm1RagSummary]:  
 {summaries['llm1RagSummary']}
 
-[llm1--Summary]:  
+[llm1Summary]:  
 {summaries['llm1Summary']}
-[llm2--Summary]:  
+[llm2Summary]:  
 {summaries['llm2Summary']}
-[llm3-Summary]:  
+[llm3Summary]:  
 {summaries['llm3Summary']}
 """
 
@@ -311,24 +336,6 @@ Your response should contain no comments, notes, or explanations.
             "raw_response": raw_response,
             "parsed_scores": scores_dict,
         }
-    @staticmethod
-    def log_empty_string_keys_in_dict(self ,data_dict):
-        """
-        Checks a dictionary where all values are expected to be strings.
-        Logs an error if any string value is None, empty, or consists only of whitespace.
-
-        Args:
-            data_dict (dict): The dictionary to check.
-        """
-        if not isinstance(data_dict, dict):
-            logging.error(f"Error: Input is not a dictionary. Type: {type(data_dict)}")
-            return
-
-        for key, value in data_dict.items():
-            if value is None:
-                logging.error(f"No summary found from '{key}', has a None value (expected string).")
-            elif not value.strip():  # This checks for "" or "   "
-                logging.error(f"No summary found from '{key}', has an empty or whitespace-only string value.")
 
 
 class ArticleProcessor:
