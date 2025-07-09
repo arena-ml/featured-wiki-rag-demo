@@ -68,14 +68,12 @@ class MetricsExporter:
 
     def __init__(
         self,
-        service_name: str = "llm.evaluation.service",
         handle_missing_metrics: str = "set_zero",
     ):
         """
         Initialize the metrics exporter.
 
         Args:
-            service_name: Name of the service
             handle_missing_metrics: How to handle missing metrics ("set_zero", "skip", "error")
         """
         self.handle_missing_metrics = handle_missing_metrics
@@ -223,9 +221,10 @@ class SummaryEvaluator:
         main_text = sections[0].get("text", "") if sections else ""
 
         summaries = {
-            "llm1_rag": article.get("llm1_emb_response", ""),
-            "llm1_zeroshot": article.get("llm1oneShotResponse", ""),
-            "llm2_zeroshot": article.get("llm2oneShotResponse", ""),
+            "llm1RagSummary": article.get("llm1RagSummary", ""),
+            "llm1Summary":article.get("llm1Summary", ""),
+            "llm2Summary": article.get("llm2Summary", ""),
+            "llm3Summary": article.get("llm3Summary", ""),
         }
 
         return f"""
@@ -238,13 +237,14 @@ Your response should contain no comments, notes, or explanations.
 {main_text}
 
 [llm1-rag-Summary]:  
-{summaries['llm1_rag']}
+{summaries['llm1RagSummary']}
 
-[llm1-ZeroShot-Summary]:  
-{summaries['llm1_zeroshot']}
-
-[llm2-ZeroShot-Summary]:  
-{summaries['llm2_zeroshot']}
+[llm1--Summary]:  
+{summaries['llm1Summary']}
+[llm2--Summary]:  
+{summaries['llm2Summary']}
+[llm3-Summary]:  
+{summaries['llm3Summary']}
 """
 
     def _validate_context_length(self, prompt: str) -> bool:
@@ -310,6 +310,24 @@ Your response should contain no comments, notes, or explanations.
             "raw_response": raw_response,
             "parsed_scores": scores_dict,
         }
+    @staticmethod
+    def log_empty_string_keys_in_dict(self ,data_dict):
+        """
+        Checks a dictionary where all values are expected to be strings.
+        Logs an error if any string value is None, empty, or consists only of whitespace.
+
+        Args:
+            data_dict (dict): The dictionary to check.
+        """
+        if not isinstance(data_dict, dict):
+            logging.error(f"Error: Input is not a dictionary. Type: {type(data_dict)}")
+            return
+
+        for key, value in data_dict.items():
+            if value is None:
+                logging.error(f"No summary found from '{key}', has a None value (expected string).")
+            elif not value.strip():  # This checks for "" or "   "
+                logging.error(f"No summary found from '{key}', has an empty or whitespace-only string value.")
 
 
 class ArticleProcessor:

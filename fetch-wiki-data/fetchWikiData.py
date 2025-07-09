@@ -237,8 +237,12 @@ class ArticlesWithRecentChanges:
         except Exception as e:
             logging.error(f"Error fetching on this day articles titles, error: {e}")
 
-        logging.info(f"Found {len(articlesList)} featured articles")
-        return articlesList
+        logging.info(f"Found {len(articlesList)} featured articles,now randomly choosing {self.max_articles} articles.")
+
+        random_articles = random.sample(articlesList, int(self.max_articles))
+        articles_list = random_articles
+
+        return articles_list
 
     def getArticleLists(self) -> Set[str]:
         """
@@ -469,9 +473,6 @@ class ArticlesWithRecentChanges:
 
         # Generate summary statistics
         if dataset:
-            if len(article_titles) > self.max_articles:
-                atSet = random.sample(dataset, self.max_articles)
-                dataset = atSet
             # Save the dataset as JSON
             with open(self.output_path, "w") as f:
                 json.dump(dataset, f, ensure_ascii=False, indent=2)
