@@ -33,7 +33,7 @@ class Config:
     ARTICLES_FILE_PATH: str = "merged_articles.json"
     OUTPUT_FILE_PATH: str = "SummaryRatings.json"
     N_CTX: int = 40000
-    MAX_CTX: int = 1000
+    MAX_CTX: int = 1200
     MODEL_NAME: str =  os.getenv("MODEL_NAME")
     TEMPERATURE: float = 0.4
     CONSOLE_WIDTH: int = 120
@@ -226,9 +226,10 @@ class SummaryEvaluator:
             "llm2Summary": article.get("llm2Summary", ""),
             "llm3Summary": article.get("llm3Summary", ""),
         }
+        n_summaries = len(summaries)
 
         return f"""
-I have given you an article and few summaries on the article, 
+I have given you an article and {n_summaries} summaries on the article, 
 provide score out of ten for each summary on these four metrics — Coherence, Consistency, Fluency, and Relevance.
 Scores Should be in JSON format.
 Your response should contain no comments, notes, or explanations.
