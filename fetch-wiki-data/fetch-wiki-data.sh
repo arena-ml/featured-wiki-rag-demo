@@ -16,7 +16,7 @@ fi
 cp WikiRC_StepOne.json "${INPUT_DIR}"/src-notebooks/phi35ragRepo/generate-embeddings/
 cp WikiRC_StepOne.json "${INPUT_DIR}"/src-notebooks/phi35ragRepo/llm1-gen-summaries-zeroshot/
 cp WikiRC_StepOne.json "${INPUT_DIR}"/src-notebooks/phi35ragRepo/llm2-gen-summaries-zeroshot/
-cp cp WikiRC_StepOne.json "${INPUT_DIR}"/src-notebooks/phi35ragRepo/llm3-gen-summaries-zeroshot/
+cp WikiRC_StepOne.json "${INPUT_DIR}"/src-notebooks/phi35ragRepo/llm3-gen-summaries-zeroshot/
 
 #move output to sharedDir
 echo "moving output to next step"
