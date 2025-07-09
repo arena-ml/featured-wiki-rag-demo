@@ -3,6 +3,10 @@ import json
 import sys
 import logging
 
+CONST_LLM1_RAG_SUMMARY_KEY="llm1RagSummary"
+CONST_LLM1_SUMMARY_KEY="llm1Summary"
+CONST_LLM2_SUMMARY_KEY="llm2Summary"
+CONST_LLM3_SUMMARY_KEY="llm3Summary"
 
 def find_json_files(directory):
     json_files = []
@@ -43,18 +47,20 @@ def merge_json_files(json_files_paths):
                     "title": article.get("title", ""),
                     "content": article.get("content", {}),
                     "summaries": {
-                        "llm1embResponse": "",
-                        "llm1oneShotResponse": "",
-                        "llm2oneShotResponse": "",
+                        CONST_LLM1_RAG_SUMMARY_KEY :"",
+                        CONST_LLM1_SUMMARY_KEY: "",
+                        CONST_LLM2_SUMMARY_KEY: "",
+                        CONST_LLM3_SUMMARY_KEY: "",
                     },
                 }
 
             # Update summaries if present
             summaries = merged_articles[article_id]["summaries"]
             for key in [
-                "llm1embResponse",
-                "llm1oneShotResponse",
-                "llm2oneShotResponse",
+                CONST_LLM1_RAG_SUMMARY_KEY,
+                CONST_LLM1_SUMMARY_KEY,
+                CONST_LLM2_SUMMARY_KEY,
+                CONST_LLM3_SUMMARY_KEY
             ]:
                 if article.get(key):
                     summaries[key] = article[key]
