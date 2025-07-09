@@ -41,7 +41,7 @@ class Config:
     json_file_path: str = "WikiRC_StepOne.json"
     vector_store_path: str = "article_embeddings_db"
     collection_name: str = "article_embeddings"
-    embedding_model: str = os.getenv("MODEL_NAME")
+    embedding_model: str = os.getenv("EMB_MODEL_NAME")
     chunk_size: int = 2500
     chunk_overlap: int = 50
     log_level: int = logging.DEBUG

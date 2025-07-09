@@ -376,7 +376,7 @@ class ArticleProcessor:
 def setup_logging() -> None:
     """Configure logging for the application."""
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
 

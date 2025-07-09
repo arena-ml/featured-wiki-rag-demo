@@ -236,7 +236,7 @@ Article:
 
         except Exception as e:
             logging.error(f"Error during document retrieval: {e}")
-            return []
+            sys.exit(1)
 
     def _generate_response(self, context: str) -> str:
         """Generate response using the LLM."""
