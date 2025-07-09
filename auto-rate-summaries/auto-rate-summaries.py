@@ -31,9 +31,9 @@ class Config:
     """Configuration constants for the evaluation system."""
 
     ARTICLES_FILE_PATH: str = "merged_articles.json"
-    OUTPUT_FILE_PATH: str = "WikiRC_StepSix.json"
+    OUTPUT_FILE_PATH: str = "SummaryRatings.json"
     N_CTX: int = 40000
-    MAX_CTX: int = 900
+    MAX_CTX: int = 1000
     MODEL_NAME: str =  os.getenv("MODEL_NAME")
     TEMPERATURE: float = 0.4
     CONSOLE_WIDTH: int = 120
@@ -228,8 +228,8 @@ class SummaryEvaluator:
         }
 
         return f"""
-I have given you an article and three summaries, provide score out of ten for llm1-rag-Summary, 
-llm1-ZeroShot-summary and llm2-ZeroShot-summary on these four metrics — Coherence, Consistency, Fluency, and Relevance.
+I have given you an article and few summaries on the article, 
+provide score out of ten for each summary on these four metrics — Coherence, Consistency, Fluency, and Relevance.
 Scores Should be in JSON format.
 Your response should contain no comments, notes, or explanations.
 
