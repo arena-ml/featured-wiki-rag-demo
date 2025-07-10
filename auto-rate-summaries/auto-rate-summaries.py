@@ -426,7 +426,8 @@ def main():
 
         evaluation_result = evaluator.evaluate_article(article=article)
 
-        if evaluation_result["error"]:
+        # wether the key exists and if it exits it not something like NONE,"" or any empty value.
+        if "error" in evaluation_result and evaluation_result["error"]:
             continue
 
         # Store results in article
