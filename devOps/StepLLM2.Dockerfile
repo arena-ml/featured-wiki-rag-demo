@@ -1,6 +1,6 @@
 FROM nvidia/cuda:12.8.1-base-ubuntu24.04
 
-ARG MODEL_NAME=gemma3:12b-it-qat
+ARG MODEL_NAME=hf.co/unsloth/Qwen3-4B-128K-GGUF:Q8_0
 # Set environment variables for optimization
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
