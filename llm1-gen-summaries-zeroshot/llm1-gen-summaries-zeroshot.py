@@ -3,6 +3,7 @@ import re
 import sys
 import os
 import ollama
+from ollama import RequestError,ResponseError
 import logging
 from rich.console import Console
 from rich.markdown import Markdown
@@ -20,6 +21,7 @@ CONST_N_CTX = 35000
 CONST_MAX_CTX = 8200
 
 # Paths
+
 articles_file_path = "WikiRC_StepOne.json"
 output_file_path = "llm1-summaries-using-zeroshot.json"
 llmModel = os.getenv("MODEL_NAME")
@@ -44,6 +46,15 @@ def clean_text(text: str) -> str:
     text = re.sub(r"\[[0-9]+\]", "", text)  # Remove citation numbers
     text = re.sub(r"\n{2,}", "\n", text).strip()
     return text
+
+
+def stripThinkingPart(response_text: str) -> str:
+    """Remove <thinking>...</Thinking> part"""
+
+    parts = response_text.split("</think>")
+    main_part = parts[1].strip() if len(parts) > 1 else response_text.strip()
+
+    return main_part
 
 
 # Initialize Model
@@ -86,7 +97,9 @@ Article:
 
 Recent Changes made in the article:
 {recenttChange}
-    """
+
+/think
+"""
 
     try:
         with console.status("[bold green]Generating summary..."):
@@ -110,11 +123,20 @@ Recent Changes made in the article:
                 options=genOpts,
             )
 
-    except Exception as e:
-        logging.error(f"Failed to load model: {e}")
+    except RequestError as chatFailed:
+        logging.error(f"Request failed: {chatFailed}")
+        return "NULL"
+
+    except ResponseError as chatFailed:
+        logging.error(f"Response error: {chatFailed}")
+        return "NULL"
+
+    except Exception as chatFailed:
+        logging.error(f"Failed to load model: {chatFailed}")
         return "NULL"
 
     response = output.message.content
+    response = stripThinkingPart(response)
     return response
 
 
