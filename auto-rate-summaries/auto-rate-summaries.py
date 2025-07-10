@@ -290,7 +290,13 @@ Your response should contain no comments, notes, or explanations.
         """Check if prompt fits within a context window."""
         try:
             token_info = ollama.embed(model=self.config.MODEL_NAME, input=prompt)
-            return token_info.prompt_eval_count <= self.config.N_CTX
+            total_tokens = token_info.prompt_eval_count
+
+            if total_tokens is None:
+                logging.error(f"token count none {token_info}.")
+                return False
+
+            return int(total_tokens) <= self.config.N_CTX
         except Exception as e:
             logging.error(f"Error checking context length: {e}")
             return False
@@ -321,6 +327,8 @@ Your response should contain no comments, notes, or explanations.
         article_id = article.get("article_id", "unknown")
 
         prompt = self._create_evaluation_prompt(self, article)
+        if prompt == "":
+            return {"error": "one or more summary is empty"}
 
         if not self._validate_context_length(prompt):
             logging.warning(f"Article {article_id}: Input exceeds context limit")
@@ -414,6 +422,9 @@ def main():
         console.print(f"\n[bold blue]Processing: {article_title}[/bold blue]")
 
         evaluation_result = evaluator.evaluate_article(article=article)
+
+        if evaluation_result["error"]:
+            continue
 
         # Store results in article
         article["smryReview"] = evaluation_result["scores"]
