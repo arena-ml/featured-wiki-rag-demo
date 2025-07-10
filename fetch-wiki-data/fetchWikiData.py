@@ -370,9 +370,7 @@ class ArticlesWithRecentChanges:
                 revision_time = datetime.strptime(
                     timestamp, "%Y-%m-%dT%H:%M:%SZ"
                 ).replace(tzinfo=timezone.utc)
-                if revision_time < cutoff_time:
-                    continue
-                else:
+                if revision_time > cutoff_time:
                     has_recent_changes = True
                     break
 
