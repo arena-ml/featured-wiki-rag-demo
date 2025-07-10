@@ -104,10 +104,11 @@ class ArticlesWithRecentChanges:
         self.output_path = config["output_path"]
         self.api_url = "https://en.wikipedia.org/w/api.php"
         self.cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.hours)
-        self.max_workers = config.get("max_workers", 10)
+        self.max_workers = config.get("max_workers", 5)
         self.max_articles = config.get("max_articles", 10)
         self.telemetry = TelemetrySetup()
         self.log_level = log_level
+        self.max_recent_changes = 50
 
 
     def setup_logging(self) -> None:
@@ -198,25 +199,27 @@ class ArticlesWithRecentChanges:
             logging.error(f"Failed to fetch data for {date}. Error: {e}")
             return []
 
-        articlesList = []
+        articles_list = []
         data = response.json()
 
         # Process today's featured article
         try:
             tfa = data.get("tfa", "")
             if tfa and tfa.get("type") == "standard":
-                articlesList.append(tfa["title"])
+                articles_list.append(tfa["title"])
         except Exception as e:
             logging.error(f"Error fetching featured article title: {e}")
+            return []
 
         # Process most read articles
         try:
-            mostReadArticles = data.get("mostread", {})
-            for article in mostReadArticles.get("articles", []):
+            most_read_articles = data.get("mostread", {})
+            for article in most_read_articles.get("articles", []):
                 if article.get("type", "") == "standard":
-                    articlesList.append(article["title"])
+                    articles_list.append(article["title"])
         except Exception as e:
             logging.error(f"Error fetching most read article titles: {e}")
+            return []
 
         # Process news articles
         try:
@@ -224,25 +227,32 @@ class ArticlesWithRecentChanges:
                 links = news.get("links", [])
                 for link in links:
                     if link.get("type", "") == "standard":
-                        articlesList.append(link["title"])
+                        articles_list.append(link["title"])
         except Exception as e:
             logging.error(f"Error fetching news article titles: {e}")
+            return []
 
         # Process on this day articles
         try:
             for otd in data.get("onthisday", []):
                 pages = otd.get("pages", [])
                 for page in pages:
-                    articlesList.append(page["title"])
+                    articles_list.append(page["title"])
         except Exception as e:
             logging.error(f"Error fetching on this day articles titles, error: {e}")
+            return []
 
-        logging.info(f"Found {len(articlesList)} featured articles,now randomly choosing {self.max_articles} articles.")
+        articles_have_recent_changes = []
+        for article_title in articles_list:
+            if self.recent_changes_exist(article_title,self.cutoff_time):
+                articles_have_recent_changes.append(article_title)
+                
 
-        random_articles = random.sample(articlesList, int(self.max_articles))
-        articles_list = random_articles
+        random_articles = random.sample(articles_list, int(self.max_articles))
 
-        return articles_list
+        logging.info(f"Found {len(articles_list)} featured articles,now randomly choosing {self.max_articles} articles.")
+
+        return random_articles
 
     def getArticleLists(self) -> Set[str]:
         """
@@ -252,11 +262,11 @@ class ArticlesWithRecentChanges:
         Returns:
             Set of unique article titles.
         """
-        tDate = self.todays_date()
-        mostViewedArticles = self.get_featuredArticlesList(date=tDate)
+        todays_date = self.todays_date()
+        most_viewed_articles = self.get_featuredArticlesList(date=todays_date)
 
         # Using a set for automatic deduplication
-        return set(mostViewedArticles)
+        return set(most_viewed_articles)
 
     @lru_cache(maxsize=128)
     def fetch_article_text(self, page_title: str) -> str:
@@ -319,6 +329,58 @@ class ArticlesWithRecentChanges:
 
         return "\n".join(simplified_diff) if simplified_diff else None
 
+    def recent_changes_exist(
+        self, page_title: str, cutoff_time: datetime
+    ) -> bool:
+        """
+        checks if recent changes were made to a Wikipedia page within the specified timeframe.
+
+        Args:
+            page_title: The title of the Wikipedia page.
+            cutoff_time: Time limit for fetching changes.
+
+        Returns:
+            A list of changes with metadata and diffs.
+        """
+        url_params = {
+            "action": "query",
+            "prop": "revisions",
+            "titles": page_title,
+            "rvprop": "timestamp|comment|ids|user|diff",
+            "rvdiffto": "prev",
+            "rvlimit": 50,  # Increased limit to catch more changes
+            "format": "json",
+        }
+
+        try:
+            response = session.get(self.api_url, params=url_params)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error fetching revisions for '{page_title}': {e}")
+            return False
+
+        data = response.json()
+        pages = data.get("query", {}).get("pages", {})
+        has_recent_changes = False
+
+        for page_id, page_info in pages.items():
+            revisions = page_info.get("revisions", [])
+            for rev in revisions:
+                timestamp = rev.get("timestamp")
+                revision_time = datetime.strptime(
+                    timestamp, "%Y-%m-%dT%H:%M:%SZ"
+                ).replace(tzinfo=timezone.utc)
+                if revision_time < cutoff_time:
+                    continue
+                else:
+                    has_recent_changes = True
+                    break
+
+        return has_recent_changes
+
+
+
+
     def get_recent_changes_within_timeframe(
         self, page_title: str, cutoff_time: datetime
     ) -> List[Dict[str, Any]]:
@@ -338,7 +400,7 @@ class ArticlesWithRecentChanges:
             "titles": page_title,
             "rvprop": "timestamp|comment|ids|user|diff",
             "rvdiffto": "prev",
-            "rvlimit": 50,  # Increased limit to catch more changes
+            "rvlimit": self.max_recent_changes,
             "format": "json",
         }
 
@@ -487,7 +549,7 @@ class ArticlesWithRecentChanges:
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Fetches Wikipedia articles with recent changes"
+        description="Fetches Wikipedia featured articles with recent changes"
     )
 
     parser.add_argument(
