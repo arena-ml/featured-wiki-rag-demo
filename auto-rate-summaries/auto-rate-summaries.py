@@ -236,6 +236,8 @@ class SummaryEvaluator:
                 logging.error(f"No summary found from '{key}' for {article_title}, has a None value (expected string).")
                 empty_key.append(key)
                 in_valid = True
+            elif len(value) == 0:
+                logging.error(f"Empty summary for '{key}' for {article_title}, has a length zero (expected string).")
             elif not value.strip():  # This checks for "" or "   "
                 logging.error(f"No summary found for '{key}' for {article_title}, has an empty or whitespace-only string value.")
                 empty_key.append(key)
@@ -254,9 +256,9 @@ class SummaryEvaluator:
 
         summaries = {
             "llm1RagSummary": article.get("llm1RagSummary", ""),
-            "llm1Summary":article.get("llm1Summary", ""),
-            "llm2Summary": article.get("llm2Summary", ""),
-            "llm3Summary": article.get("llm3Summary", ""),
+            "llm1Summary":article.get("llm1Summary", None),
+            "llm2Summary": article.get("llm2Summary", None),
+            "llm3Summary": article.get("llm3Summary", None),
         }
 
         invalid = self.empty_summaries(summaries, article.get("title", ""))
