@@ -215,25 +215,36 @@ class SummaryEvaluator:
         self.response_processor = ResponseProcessor()
 
     @staticmethod
-    def log_empty_string_keys_in_dict(data_dict):
+    def empty_summaries(data_dict: dict, article_title: str) -> bool:
         """
         Checks a dictionary where all values are expected to be strings.
         Logs an error if any string value is None, empty, or consists only of whitespace.
 
         Args:
             data_dict (dict): The dictionary to check.
+            article_title: provides article title for logging
         """
+        empty_key = []
+        in_valid = False
+
         if not isinstance(data_dict, dict):
             logging.error(f"Error: Input is not a dictionary. Type: {type(data_dict)}")
-            sys.exit(1)
+            in_valid = True
 
         for key, value in data_dict.items():
             if value is None:
-                logging.error(f"No summary found for'{key}', has a None value (expected string).")
-                sys.exit(1)
+                logging.error(f"No summary found from '{key}' for {article_title}, has a None value (expected string).")
+                empty_key.append(key)
+                in_valid = True
             elif not value.strip():  # This checks for "" or "   "
-                logging.error(f"No summary found for '{key}', has an empty or whitespace-only string value.")
-                sys.exit(1)
+                logging.error(f"No summary found for '{key}' for {article_title}, has an empty or whitespace-only string value.")
+                empty_key.append(key)
+                in_valid = True
+
+        if in_valid:
+            logging.error(f"No summary found from '{empty_key}' for {article_title}.")
+
+        return in_valid
 
     @staticmethod
     def _create_evaluation_prompt(self, article: Dict[str, Any]) -> str:
@@ -248,7 +259,9 @@ class SummaryEvaluator:
             "llm3Summary": article.get("llm3Summary", ""),
         }
 
-        self.log_empty_string_keys_in_dict(summaries)
+        invalid = self.empty_summaries(summaries, article.get("title", ""))
+        if invalid:
+            return ""
 
         n_summaries = len(summaries)
         summary_keys = list(summaries.keys())
