@@ -30,6 +30,7 @@ from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 
 CONST_SERVICE_NAME = "llm1-gen-summaries-via-RAG"
+CONST_SUMMARY_KEY="llm1RagSummary"
 
 
 @dataclass
@@ -235,7 +236,7 @@ Article:
 
         except Exception as e:
             logging.error(f"Error during document retrieval: {e}")
-            return []
+            sys.exit(1)
 
     def _generate_response(self, context: str) -> str:
         """Generate response using the LLM."""
@@ -282,7 +283,7 @@ Article:
 
             if not docs:
                 logging.warning(f"No documents retrieved for article {article_id}")
-                article["llm1embResponse"] = "NULL"
+                article[CONST_SUMMARY_KEY] = "NULL"
                 return article
 
             # Combine context and generate response
@@ -290,7 +291,7 @@ Article:
             response = self._generate_response(context)
 
             # Update article with results
-            article["llm1embResponse"] = response
+            article[CONST_SUMMARY_KEY] = response
 
             if response != "NULL":
                 retrieved_docs = " ".join(str(doc) for doc in docs)

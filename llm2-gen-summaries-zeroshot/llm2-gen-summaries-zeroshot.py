@@ -131,7 +131,7 @@ Recent Changes made in the article:
 # Process selected articles and store summaries
 for article in articles:
     summary = generate_summary(article)
-    article["llm2oneShotResponse"] = summary
+    article["llm2Summary"] = summary
     console.print(Markdown(f"### Summary for {article['title']}\n{summary}"))
     console.print("\n" + "=" * 90 + "\n")
 

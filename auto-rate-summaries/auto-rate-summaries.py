@@ -31,9 +31,9 @@ class Config:
     """Configuration constants for the evaluation system."""
 
     ARTICLES_FILE_PATH: str = "merged_articles.json"
-    OUTPUT_FILE_PATH: str = "WikiRC_StepSix.json"
+    OUTPUT_FILE_PATH: str = "SummaryRatings.json"
     N_CTX: int = 40000
-    MAX_CTX: int = 900
+    MAX_CTX: int = 1200
     MODEL_NAME: str =  os.getenv("MODEL_NAME")
     TEMPERATURE: float = 0.4
     CONSOLE_WIDTH: int = 120
@@ -68,14 +68,12 @@ class MetricsExporter:
 
     def __init__(
         self,
-        service_name: str = "llm.evaluation.service",
         handle_missing_metrics: str = "set_zero",
     ):
         """
         Initialize the metrics exporter.
 
         Args:
-            service_name: Name of the service
             handle_missing_metrics: How to handle missing metrics ("set_zero", "skip", "error")
         """
         self.handle_missing_metrics = handle_missing_metrics
@@ -217,41 +215,91 @@ class SummaryEvaluator:
         self.response_processor = ResponseProcessor()
 
     @staticmethod
+    def check_empty_summaries(data_dict: dict, article_title: str) -> bool:
+        """
+        Checks a dictionary where all values are expected to be strings.
+        Logs an error if any string value is None, empty, or consists only of whitespace.
+
+        Args:
+            data_dict (dict): The dictionary to check.
+            article_title: provides article title for logging
+        """
+        empty_key = []
+        in_valid = False
+
+        if not isinstance(data_dict, dict):
+            logging.error(f"Error: Input is not a dictionary. Type: {type(data_dict)}")
+            in_valid = True
+
+        for key, value in data_dict.items():
+            if value is None:
+                logging.error(f"No summary found from '{key}' for {article_title}, has a None value (expected string).")
+                empty_key.append(key)
+                in_valid = True
+            elif len(value) == 0:
+                logging.error(f"Empty summary for '{key}' for {article_title}, has a length zero (expected string).")
+            elif not value.strip():  # This checks for "" or "   "
+                logging.error(f"No summary found for '{key}' for {article_title}, has an empty or whitespace-only string value.")
+                empty_key.append(key)
+                in_valid = True
+
+        if in_valid:
+            logging.error(f"No summary found from '{empty_key}' for {article_title}.")
+
+        return in_valid
+
+    @staticmethod
     def _create_evaluation_prompt(self, article: Dict[str, Any]) -> str:
         """Create the evaluation prompt for the LLM."""
         sections = article.get("content", {}).get("sections", [])
-        main_text = sections[0].get("text", "") if sections else ""
+        main_text = sections[0].get("text", "") if sections else None
+        summary_sections = article["summaries"]
 
         summaries = {
-            "llm1_rag": article.get("llm1_emb_response", ""),
-            "llm1_zeroshot": article.get("llm1oneShotResponse", ""),
-            "llm2_zeroshot": article.get("llm2oneShotResponse", ""),
+            "llm1RagSummary": summary_sections.get("llm1RagSummary", ""),
+            "llm1Summary":summary_sections.get("llm1Summary", ""),
+            "llm2Summary": summary_sections.get("llm2Summary", ""),
+            "llm3Summary": summary_sections.get("llm3Summary", ""),
         }
 
+        invalid = self.check_empty_summaries(summaries, article.get("title", ""))
+        if invalid:
+            return ""
+
+        n_summaries = len(summaries)
+        summary_keys = list(summaries.keys())
+
         return f"""
-I have given you an article and three summaries, provide score out of ten for llm1-rag-Summary, 
-llm1-ZeroShot-summary and llm2-ZeroShot-summary on these four metrics — Coherence, Consistency, Fluency, and Relevance.
+I have given you an article and {n_summaries} summaries on the article, 
+provide score out of ten for {summary_keys}  on these four metrics — Coherence, Consistency, Fluency, and Relevance.
 Scores Should be in JSON format.
 Your response should contain no comments, notes, or explanations.
 
 [Article]:  
 {main_text}
 
-[llm1-rag-Summary]:  
-{summaries['llm1_rag']}
+[llm1RagSummary]:  
+{summaries['llm1RagSummary']}
 
-[llm1-ZeroShot-Summary]:  
-{summaries['llm1_zeroshot']}
-
-[llm2-ZeroShot-Summary]:  
-{summaries['llm2_zeroshot']}
+[llm1Summary]:  
+{summaries['llm1Summary']}
+[llm2Summary]:  
+{summaries['llm2Summary']}
+[llm3Summary]:  
+{summaries['llm3Summary']}
 """
 
     def _validate_context_length(self, prompt: str) -> bool:
         """Check if prompt fits within a context window."""
         try:
             token_info = ollama.embed(model=self.config.MODEL_NAME, input=prompt)
-            return token_info.prompt_eval_count <= self.config.N_CTX
+            total_tokens = token_info.prompt_eval_count
+
+            if total_tokens is None:
+                logging.error(f"token count none {token_info}.")
+                return False
+
+            return int(total_tokens) <= self.config.N_CTX
         except Exception as e:
             logging.error(f"Error checking context length: {e}")
             return False
@@ -282,6 +330,8 @@ Your response should contain no comments, notes, or explanations.
         article_id = article.get("article_id", "unknown")
 
         prompt = self._create_evaluation_prompt(self, article)
+        if prompt == "":
+            return {"error": "one or more summary is empty"}
 
         if not self._validate_context_length(prompt):
             logging.warning(f"Article {article_id}: Input exceeds context limit")
@@ -350,7 +400,7 @@ class ArticleProcessor:
 def setup_logging() -> None:
     """Configure logging for the application."""
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
 
@@ -375,6 +425,10 @@ def main():
         console.print(f"\n[bold blue]Processing: {article_title}[/bold blue]")
 
         evaluation_result = evaluator.evaluate_article(article=article)
+
+        # wether the key exists and if it exits it not something like NONE,"" or any empty value.
+        if "error" in evaluation_result and evaluation_result["error"]:
+            continue
 
         # Store results in article
         article["smryReview"] = evaluation_result["scores"]
