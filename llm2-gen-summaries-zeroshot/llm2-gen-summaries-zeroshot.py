@@ -48,6 +48,15 @@ def clean_text(text: str) -> str:
     return text
 
 
+def stripThinkingPart(response_text: str) -> str:
+    """Remove <thinking>...</Thinking> part"""
+
+    parts = response_text.split("</think>")
+    main_part = parts[1].strip() if len(parts) > 1 else response_text.strip()
+
+    return main_part
+
+
 # Initialize Model
 
 
@@ -88,6 +97,8 @@ Article:
 
 Recent Changes made in the article:
 {recenttChange}
+
+/think
 """
 
     try:
@@ -125,6 +136,7 @@ Recent Changes made in the article:
         return "NULL"
 
     response = output.message.content
+    response = stripThinkingPart(response)
     return response
 
 
