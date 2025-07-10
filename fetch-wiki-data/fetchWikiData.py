@@ -246,11 +246,11 @@ class ArticlesWithRecentChanges:
         for article_title in articles_list:
             if self.recent_changes_exist(article_title,self.cutoff_time):
                 articles_have_recent_changes.append(article_title)
-                
+
 
         random_articles = random.sample(articles_list, int(self.max_articles))
 
-        logging.info(f"Found {len(articles_list)} featured articles,now randomly choosing {self.max_articles} articles.")
+        logging.info(f"Found {len(articles_list)} featured articles,now randomly choosing {len(random_articles)} articles.")
 
         return random_articles
 
@@ -440,7 +440,8 @@ class ArticlesWithRecentChanges:
                             "diff": clean_diff,
                         }
                     )
-
+        if len(revisions_data) == 0:
+            logging.info(f"No recent changes found for '{page_title}'")
         return revisions_data
 
     def process_article(self, article_title: str) -> Optional[Dict[str, Any]]:
