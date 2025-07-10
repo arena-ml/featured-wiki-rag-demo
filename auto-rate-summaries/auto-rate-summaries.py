@@ -287,6 +287,8 @@ Your response should contain no comments, notes, or explanations.
 {summaries['llm2Summary']}
 [llm3Summary]:  
 {summaries['llm3Summary']}
+
+/think
 """
 
     def _validate_context_length(self, prompt: str) -> bool:
