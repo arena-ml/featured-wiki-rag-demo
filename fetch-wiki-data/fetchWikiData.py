@@ -248,7 +248,7 @@ class ArticlesWithRecentChanges:
                 articles_have_recent_changes.append(article_title)
 
 
-        random_articles = random.sample(articles_list, int(self.max_articles))
+        random_articles = random.sample(articles_have_recent_changes, int(self.max_articles))
 
         logging.info(f"Found {len(articles_list)} featured articles,now randomly choosing {len(random_articles)} articles.")
 
