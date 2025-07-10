@@ -215,7 +215,7 @@ class SummaryEvaluator:
         self.response_processor = ResponseProcessor()
 
     @staticmethod
-    def empty_summaries(data_dict: dict, article_title: str) -> bool:
+    def check_empty_summaries(data_dict: dict, article_title: str) -> bool:
         """
         Checks a dictionary where all values are expected to be strings.
         Logs an error if any string value is None, empty, or consists only of whitespace.
@@ -252,16 +252,17 @@ class SummaryEvaluator:
     def _create_evaluation_prompt(self, article: Dict[str, Any]) -> str:
         """Create the evaluation prompt for the LLM."""
         sections = article.get("content", {}).get("sections", [])
-        main_text = sections[0].get("text", "") if sections else ""
+        main_text = sections[0].get("text", "") if sections else None
+        summary_sections = article["summaries"]
 
         summaries = {
-            "llm1RagSummary": article.get("llm1RagSummary", ""),
-            "llm1Summary":article.get("llm1Summary", None),
-            "llm2Summary": article.get("llm2Summary", None),
-            "llm3Summary": article.get("llm3Summary", None),
+            "llm1RagSummary": summary_sections.get("llm1RagSummary", ""),
+            "llm1Summary":summary_sections.get("llm1Summary", ""),
+            "llm2Summary": summary_sections.get("llm2Summary", ""),
+            "llm3Summary": summary_sections.get("llm3Summary", ""),
         }
 
-        invalid = self.empty_summaries(summaries, article.get("title", ""))
+        invalid = self.check_empty_summaries(summaries, article.get("title", ""))
         if invalid:
             return ""
 
