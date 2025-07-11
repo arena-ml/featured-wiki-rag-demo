@@ -216,7 +216,8 @@ class ArticlesWithRecentChanges:
             most_read_articles = data.get("mostread", {})
             for article in most_read_articles.get("articles", []):
                 if article.get("type", "") == "standard":
-                    articles_list.append(article["title"])
+                    if article["title"] not in articles_list:
+                        articles_list.append(article["title"])
         except Exception as e:
             logging.error(f"Error fetching most read article titles: {e}")
             return []
@@ -227,7 +228,8 @@ class ArticlesWithRecentChanges:
                 links = news.get("links", [])
                 for link in links:
                     if link.get("type", "") == "standard":
-                        articles_list.append(link["title"])
+                        if link["title"] not in articles_list:
+                            articles_list.append(link["title"])
         except Exception as e:
             logging.error(f"Error fetching news article titles: {e}")
             return []
@@ -237,7 +239,8 @@ class ArticlesWithRecentChanges:
             for otd in data.get("onthisday", []):
                 pages = otd.get("pages", [])
                 for page in pages:
-                    articles_list.append(page["title"])
+                    if page["title"] not in articles_list:
+                        articles_list.append(page["title"])
         except Exception as e:
             logging.error(f"Error fetching on this day articles titles, error: {e}")
             return []
@@ -246,6 +249,10 @@ class ArticlesWithRecentChanges:
         for article_title in articles_list:
             if self.recent_changes_exist(article_title,self.cutoff_time):
                 articles_have_recent_changes.append(article_title)
+            # in case aritcle_list >> max_articles limit
+            # choosing random from thrice size is good enough.
+            if len(articles_have_recent_changes) >= self.max_articles*3:
+                break
 
 
         random_articles = random.sample(articles_have_recent_changes, int(self.max_articles))
@@ -263,10 +270,10 @@ class ArticlesWithRecentChanges:
             Set of unique article titles.
         """
         todays_date = self.todays_date()
-        most_viewed_articles = self.get_featuredArticlesList(date=todays_date)
+        articles_list = self.get_featuredArticlesList(date=todays_date)
 
         # Using a set for automatic deduplication
-        return set(most_viewed_articles)
+        return set(articles_list)
 
     @lru_cache(maxsize=128)
     def fetch_article_text(self, page_title: str) -> str:
@@ -370,6 +377,11 @@ class ArticlesWithRecentChanges:
                 revision_time = datetime.strptime(
                     timestamp, "%Y-%m-%dT%H:%M:%SZ"
                 ).replace(tzinfo=timezone.utc)
+
+                # it's possible this revisoin gets between checking if revision
+                # exists and fetching the revisoin thus article ends with false
+                # positive for having recent changes within cut-off time.
+
                 if revision_time > cutoff_time:
                     has_recent_changes = True
                     break
