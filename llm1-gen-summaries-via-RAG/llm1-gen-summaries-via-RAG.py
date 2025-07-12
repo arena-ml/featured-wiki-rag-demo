@@ -11,7 +11,7 @@ import sys
 import logging
 import os
 from pathlib import Path
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Dict, Any
 from dataclasses import dataclass
 from contextlib import contextmanager
 
@@ -133,8 +133,8 @@ class RAGSummaryGenerator:
         # Add telemetry handler
         telemetry_handler = self.telemetry.setup()
         logging.getLogger().addHandler(telemetry_handler)
-
-    def _setup_monitoring(self) -> None:
+    @staticmethod
+    def _setup_monitoring() -> None:
         """Initialize OpenLIT monitoring."""
         openlit.init(collect_gpu_stats=True, capture_message_content=False,application_name=CONST_SERVICE_NAME)
 
@@ -147,7 +147,7 @@ class RAGSummaryGenerator:
             logging.info(f"Initialized embeddings model: {self.config.embedding_model}")
         except Exception as e:
             logging.error(f"Failed to initialize embeddings: {e}")
-            raise
+            sys.exit(1)
 
     def _initialize_vectorstore(self) -> None:
         """Initialize the ChromaDB vectorstore."""
@@ -167,27 +167,29 @@ class RAGSummaryGenerator:
             logging.info(f"Initialized vectorstore at: {self.config.vectorstore_path}")
         except Exception as e:
             logging.error(f"Failed to initialize vectorstore: {e}")
-            raise
+            sys.exit(1)
 
     def _load_articles(self) -> List[Dict[str, Any]]:
         """Load articles from the input file."""
         try:
             input_file = Path(self.config.input_path)
             if not input_file.exists():
-                raise FileNotFoundError(f"Input file not found: {self.config.input_path}")
+                logging.error(f"Input file does not exist: {self.config.input_path}")
+                sys.exit(1)
 
             with open(input_file, "r", encoding="utf-8") as file:
                 articles = json.load(file)
 
             if not articles:
-                raise ValueError("The input file is empty or contains no articles.")
+                logging.error(f"Input file does not contain valid JSON: {self.config.input_path}")
+                sys.exit(1)
 
             logging.info(f"Loaded {len(articles)} articles from {self.config.input_path}")
             return articles
 
         except Exception as e:
             logging.error(f"Failed to load articles: {e}")
-            raise
+            sys.exit(1)
 
     def _save_results(self, articles: List[Dict[str, Any]]) -> None:
         """Save the processed articles to the output file."""
@@ -201,13 +203,13 @@ class RAGSummaryGenerator:
             logging.info(f"Results saved to {self.config.output_path}")
         except Exception as e:
             logging.error(f"Failed to save results: {e}")
-            raise
+            sys.exit(1)
 
     @staticmethod
     def _normalize_title(title: str) -> str:
         """Remove underscores from title."""
         return title.replace("_", " ")
-
+    @staticmethod
     def _construct_prompt(self, context: str) -> str:
         """Construct the prompt for the language model."""
         return f"""
@@ -241,7 +243,7 @@ Article:
     def _generate_response(self, context: str) -> str:
         """Generate response using the LLM."""
         try:
-            prompt = self._construct_prompt(context)
+            prompt = self._construct_prompt(self=self,context=context)
 
             gen_options = {
                 "num_predict": self.config.max_ctx,
@@ -352,7 +354,7 @@ def main():
         generator.run()
     except KeyboardInterrupt:
         logging.info("Process interrupted by user")
-        sys.exit(0)
+        sys.exit(1)
     except Exception as e:
         logging.error(f"Unexpected error: {e}")
         sys.exit(1)
