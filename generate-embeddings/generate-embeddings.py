@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Embedding Generator for WikiRC Articles
+Embedding Generator for wiki articles
 
-This module processes WikiRC articles from JSON format and generates embeddings
+This module processes Wiki articles from JSON format and generates embeddings
 using Ollama, storing them in a ChromaDB vector database.
 """
 
 import sys
 import os
-import time
 import json
 import logging
 import signal
@@ -38,14 +37,13 @@ CONST_SERVICE_NAME = "generate-embeddings"
 class Config:
     """Configuration settings for the embedding generator."""
 
-    json_file_path: str = "WikiRC_StepOne.json"
+    ouput_file_path: str = "WikiRC_StepOne.json"
     vector_store_path: str = "article_embeddings_db"
     collection_name: str = "article_embeddings"
     embedding_model: str = os.getenv("EMB_MODEL_NAME")
-    chunk_size: int = 2500
+    chunk_size: int = 3000
     chunk_overlap: int = 50
     log_level: int = logging.DEBUG
-    log_file: str = "indexing.log"
 
     @classmethod
     def from_env(cls) -> 'Config':
@@ -63,14 +61,13 @@ class Config:
         log_level = log_level_map.get(log_level_str, logging.DEBUG)
 
         return cls(
-            json_file_path=os.getenv("JSON_FILE_PATH", cls.json_file_path),
-            vector_store_path=os.getenv("VECTOR_STORE_PATH", cls.vector_store_path),
-            collection_name=os.getenv("COLLECTION_NAME", cls.collection_name),
+            ouput_file_path=cls.ouput_file_path,
+            vector_store_path=cls.vector_store_path,
+            collection_name=cls.collection_name,
             embedding_model=os.getenv("EMBEDDING_MODEL", cls.embedding_model),
-            chunk_size=int(os.getenv("CHUNK_SIZE", cls.chunk_size)),
-            chunk_overlap=int(os.getenv("CHUNK_OVERLAP", cls.chunk_overlap)),
-            log_level=log_level,
-            log_file=os.getenv("LOG_FILE", cls.log_file),
+            chunk_size=int( cls.chunk_size),
+            chunk_overlap=int(cls.chunk_overlap),
+            log_level=log_level
         )
 
 
@@ -152,10 +149,10 @@ class DocumentProcessor:
 
         except (FileNotFoundError, json.JSONDecodeError) as e:
             logging.error(f"Error loading JSON file {file_path}: {str(e)}")
-            raise
+            sys.exit(1)
         except Exception as e:
             logging.error(f"Unexpected error parsing JSON: {str(e)}")
-            raise
+            sys.exit(1)
 
     def _process_article(self, article_idx: int, article: Dict[str, Any]) -> Generator[
         langchain.schema.Document, None, None]:
@@ -209,7 +206,7 @@ class DocumentProcessor:
                 )
         except Exception as e:
             logging.error(f"Failed to split document: {str(e)}")
-            raise
+            sys.exit(1)
 
 
 class VectorStoreManager:
@@ -239,7 +236,7 @@ class VectorStoreManager:
             yield self.vectorstore
         except Exception as e:
             logging.error(f"Error initializing vector store: {str(e)}")
-            raise
+            sys.exit(1)
         finally:
             if self.vectorstore:
                 # ChromaDB persists automatically
@@ -248,13 +245,13 @@ class VectorStoreManager:
     def add_documents(self, documents: List[langchain.schema.Document]) -> None:
         """Add documents to the vector store."""
         if not self.vectorstore:
-            raise RuntimeError("Vector store not initialized")
+            logging.error(f"No vector store available,{self.config.collection_name} not available at path {self.config.vector_store_path}")
 
         try:
             self.vectorstore.add_documents(documents)
         except Exception as e:
             logging.error(f"Error adding documents to vector store: {str(e)}")
-            raise
+            sys.exit(1)
 
 
 class EmbeddingGenerator:
@@ -285,11 +282,12 @@ class EmbeddingGenerator:
 
     def process_and_index(self) -> None:
         """Process documents and create embeddings."""
-        if not Path(self.config.json_file_path).exists():
-            raise FileNotFoundError(f"JSON file not found: {self.config.json_file_path}")
+        if not Path(self.config.ouput_file_path).exists():
+            logging.error(f"Output file does not exist: {self.config.ouput_file_path}")
+            sys.exit(1)
 
         with self.vector_store_manager.get_vectorstore() as vectorstore:
-            documents = list(self.document_processor.parse_json(self.config.json_file_path))
+            documents = list(self.document_processor.parse_json(self.config.ouput_file_path))
             total_documents = len(documents)
             logging.info(f"Total documents/chunks to process: {total_documents}")
 
@@ -305,7 +303,7 @@ class EmbeddingGenerator:
                         pbar.update(1)
                     except Exception as e:
                         logging.error(f"Error processing document {idx + 1}: {str(e)}")
-                        raise
+                        sys.exit(1)
 
     def run(self) -> None:
         """Main execution method."""
@@ -326,7 +324,7 @@ def main():
         generator.run()
     except KeyboardInterrupt:
         logging.error("Process interrupted by user")
-        sys.exit(0)
+        sys.exit(1)
     except Exception as e:
         logging.error(f"Fatal error: {str(e)}")
         sys.exit(1)
