@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import sys
 import logging
 
@@ -71,45 +72,76 @@ def get_json_file(file_path):
 #     return merged_articles
 
 def merge_json_files(json_files_paths):
+    """
+    Advanced version with customizable summary key detection patterns.
+    """
     merged_articles = {}
-    summary_keys = []
+    summary_keys = set()
 
-    # First pass: discover all summary keys
+    # Default patterns for summary key detection
+    default_patterns = [
+        r'.*summary.*',
+        r'.*Summary.*',
+    ]
+
+    patterns = default_patterns
+
+    compiled_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in patterns]
+
+    # First pass: discover summary keys
+    print("Discovering summary keys with patterns...")
     for file_path in json_files_paths:
-        articles = get_json_file(file_path)
-        for article in articles:
-            if type(article) == dict:
-                # Find keys that look like summary keys
-                summary_sections = article["summaries"]
-                for key in summary_sections:
-                    summary_keys.append(key)
-                summary_keys = set(summary_keys)
+        try:
+            articles = get_json_file(file_path)
+            for article in articles:
+                if not isinstance(article, dict):
+                    continue
 
-    summary_keys = list(summary_keys)
+                for key in article.keys():
+                    # Skip standard article fields
+                    if key in ['article_id', 'title', 'content', 'summaries']:
+                        continue
 
-    # Second pass: merge articles
+                    # Check if key matches any summary pattern
+                    if any(pattern.match(key) for pattern in compiled_patterns):
+                        summary_keys.add(key)
+
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+            continue
+
+    summary_keys = sorted(list(summary_keys))
+    print(f"Found summary keys: {summary_keys}")
+
+    # Second pass: merge articles (same as before)
     for file_path in json_files_paths:
-        articles = get_json_file(file_path)
+        try:
+            articles = get_json_file(file_path)
 
-        for article in articles:
-            print("Type:", type(article))
-            if type(article) != dict:
-                continue
-            article_id = article.get("article_id")
+            for article in articles:
+                if not isinstance(article, dict):
+                    continue
 
-            if article_id not in merged_articles:
-                merged_articles[article_id] = {
-                    "article_id": article_id,
-                    "title": article.get("title", ""),
-                    "content": article.get("content", {}),
-                    "summaries": {key: "" for key in summary_keys},
-                }
+                article_id = article.get("article_id")
+                if not article_id:
+                    continue
 
-            # Update summaries if present
-            summaries = merged_articles[article_id]["summaries"]
-            for key in summary_keys:
-                if article.get(key):
-                    summaries[key] = article[key]
+                if article_id not in merged_articles:
+                    merged_articles[article_id] = {
+                        "article_id": article_id,
+                        "title": article.get("title", ""),
+                        "content": article.get("content", {}),
+                        "summaries": {key: "" for key in summary_keys},
+                    }
+
+                summaries = merged_articles[article_id]["summaries"]
+                for key in summary_keys:
+                    if key in article and article[key]:
+                        summaries[key] = article[key]
+
+        except Exception as e:
+            print(f"Error processing {file_path}: {e}")
+            continue
 
     return merged_articles
 
