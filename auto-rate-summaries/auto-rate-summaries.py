@@ -149,7 +149,6 @@ class MetricsExporter:
                         metrics_sent += 1
             else:
                 logging.warning(f"empty metric data for config:{config_name}, skipping: {evaluation_data}")
-                sys.exit(1)
 
         logging.debug(f"Sent {metrics_sent} evaluation metrics")
 
@@ -230,10 +229,6 @@ def generate_summary_evaluation_prompt(summaries: dict[str,str], main_text):
     # Add each summary section
     for key, value in summaries.items():
         prompt_parts.extend([f"[{key}]:", value, ""])
-
-    # # Remove the last empty string to avoid trailing newline
-    # if prompt_parts and prompt_parts[-1] == "":
-    #     prompt_parts.pop()
 
     return "\n".join(prompt_parts)
 
@@ -355,8 +350,6 @@ class SummaryEvaluator:
         main_text = extract_main_text(article)
 
         prompt = generate_summary_evaluation_prompt(summaries, main_text)
-        if prompt == "":
-            return {"error": "one or more summary is empty"}
 
         if not self._validate_context_length(prompt):
             logging.warning(f"Article {article_id}: Input exceeds context limit")

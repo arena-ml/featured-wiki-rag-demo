@@ -29,9 +29,65 @@ def get_json_file(file_path):
         sys.exit(1)
 
 
+# def merge_json_files(json_files_paths):
+#     merged_articles = {}
+#
+#     for file_path in json_files_paths:
+#         articles = get_json_file(file_path)
+#
+#         for article in articles:
+#             print("Type:", type(article))
+#             if type(article) != dict:
+#                 continue
+#             article_id = article.get("article_id")
+#
+#             if article_id not in merged_articles:
+#                 # Copy the structure excluding summaries
+#                 merged_articles[article_id] = {
+#                     "article_id": article_id,
+#                     "title": article.get("title", ""),
+#                     "content": article.get("content", {}),
+#                     "summaries": {
+#                         CONST_LLM1_RAG_SUMMARY_KEY :"",
+#                         CONST_LLM1_SUMMARY_KEY: "",
+#                         CONST_LLM2_SUMMARY_KEY: "",
+#                         CONST_LLM3_SUMMARY_KEY: "",
+#                         CONST_SLM_SUMMARY_KEY: "",
+#                     },
+#                 }
+#
+#             # Update summaries if present
+#             summaries = merged_articles[article_id]["summaries"]
+#             for key in [
+#                 CONST_LLM1_RAG_SUMMARY_KEY,
+#                 CONST_LLM1_SUMMARY_KEY,
+#                 CONST_LLM2_SUMMARY_KEY,
+#                 CONST_LLM3_SUMMARY_KEY,
+#                 CONST_SLM_SUMMARY_KEY,
+#             ]:
+#                 if article.get(key):
+#                     summaries[key] = article[key]
+#
+#     return merged_articles
+
 def merge_json_files(json_files_paths):
     merged_articles = {}
+    summary_keys = []
 
+    # First pass: discover all summary keys
+    for file_path in json_files_paths:
+        articles = get_json_file(file_path)
+        for article in articles:
+            if type(article) == dict:
+                # Find keys that look like summary keys
+                summary_sections = article["summaries"]
+                for key in summary_sections:
+                    summary_keys.append(key)
+                summary_keys = set(summary_keys)
+
+    summary_keys = list(summary_keys)
+
+    # Second pass: merge articles
     for file_path in json_files_paths:
         articles = get_json_file(file_path)
 
@@ -42,29 +98,16 @@ def merge_json_files(json_files_paths):
             article_id = article.get("article_id")
 
             if article_id not in merged_articles:
-                # Copy the structure excluding summaries
                 merged_articles[article_id] = {
                     "article_id": article_id,
                     "title": article.get("title", ""),
                     "content": article.get("content", {}),
-                    "summaries": {
-                        CONST_LLM1_RAG_SUMMARY_KEY :"",
-                        CONST_LLM1_SUMMARY_KEY: "",
-                        CONST_LLM2_SUMMARY_KEY: "",
-                        CONST_LLM3_SUMMARY_KEY: "",
-                        CONST_SLM_SUMMARY_KEY: "",
-                    },
+                    "summaries": {key: "" for key in summary_keys},
                 }
 
             # Update summaries if present
             summaries = merged_articles[article_id]["summaries"]
-            for key in [
-                CONST_LLM1_RAG_SUMMARY_KEY,
-                CONST_LLM1_SUMMARY_KEY,
-                CONST_LLM2_SUMMARY_KEY,
-                CONST_LLM3_SUMMARY_KEY,
-                CONST_SLM_SUMMARY_KEY,
-            ]:
+            for key in summary_keys:
                 if article.get(key):
                     summaries[key] = article[key]
 
