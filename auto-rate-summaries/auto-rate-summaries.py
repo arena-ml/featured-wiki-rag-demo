@@ -140,13 +140,16 @@ class MetricsExporter:
         for config_name, metrics_data in evaluation_data.items():
             attributes = base_attributes.copy()
             attributes["method_type"] = config_name.lower()
-
-            for metric_name, value in metrics_data.items():
-                if metric_name.lower() in self.gauges:
-                    self._send_single_metric(
-                        self.gauges[metric_name.lower()], value, attributes, metric_name
-                    )
-                    metrics_sent += 1
+            if metrics_data:
+                for metric_name, value in metrics_data.items():
+                    if metric_name.lower() in self.gauges:
+                        self._send_single_metric(
+                            self.gauges[metric_name.lower()], value, attributes, metric_name
+                        )
+                        metrics_sent += 1
+            else:
+                logging.warning(f"empty metric data for config:{config_name}, skipping: {evaluation_data}")
+                sys.exit(1)
 
         logging.debug(f"Sent {metrics_sent} evaluation metrics")
 
@@ -228,9 +231,9 @@ def generate_summary_evaluation_prompt(summaries: dict[str,str], main_text):
     for key, value in summaries.items():
         prompt_parts.extend([f"[{key}]:", value, ""])
 
-    # Remove the last empty string to avoid trailing newline
-    if prompt_parts and prompt_parts[-1] == "":
-        prompt_parts.pop()
+    # # Remove the last empty string to avoid trailing newline
+    # if prompt_parts and prompt_parts[-1] == "":
+    #     prompt_parts.pop()
 
     return "\n".join(prompt_parts)
 
@@ -292,14 +295,16 @@ class SummaryEvaluator:
     @staticmethod
     def _extract_summaries(self, article: Dict[str, Any]) -> dict[str, str]:
         """extract summaries for a given article"""
-
+        article_title = article["title"]
         summary_sections = article["summaries"]
 
         summaries = {key: summary_sections.get(key, "") for key in summary_sections}
 
         invalid = self.check_empty_summaries(summaries, article.get("title", ""))
         if invalid:
-            return ""
+            logging.error(f"Invalid summary found for '{article_title}' for '{summary_sections}'.")
+            sys.exit(1)
+
 
         return summaries
 
