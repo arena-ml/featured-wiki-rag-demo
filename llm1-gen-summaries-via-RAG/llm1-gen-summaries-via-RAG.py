@@ -31,6 +31,7 @@ from opentelemetry.sdk.resources import Resource
 
 CONST_SERVICE_NAME = "llm1-gen-summaries-via-RAG"
 CONST_SUMMARY_KEY="llm1RagSummary"
+CONST_max_tokens = 35000
 
 
 @dataclass
@@ -44,9 +45,6 @@ class Config:
     llm_model: str = os.getenv("MODEL_NAME")
     embedding_model: str = os.getenv("EMB_MODEL_NAME")
 
-    # Context configuration
-    n_ctx: int = 35000
-    max_ctx: int = 8200
 
     # Generation parameters
     temperature: float = 0.6
@@ -209,6 +207,19 @@ class RAGSummaryGenerator:
     def _normalize_title(title: str) -> str:
         """Remove underscores from title."""
         return title.replace("_", " ")
+
+    def _getSummaryLength(self,prompt: str) -> int:
+        token_info = ollama.embed(model=self.config.llm_model, input=prompt)
+        total_tokens = token_info.prompt_eval_count
+
+        if total_tokens is None:
+            logging.error(f"token count none {token_info}.")
+            sys.exit(1)
+
+        thirty_percent = total_tokens * 0.3
+
+        return min(thirty_percent, CONST_max_tokens)
+
     @staticmethod
     def _construct_prompt(self, context: str) -> str:
         """Construct the prompt for the language model."""
@@ -244,10 +255,11 @@ Article:
         """Generate response using the LLM."""
         try:
             prompt = self._construct_prompt(self=self,context=context)
+            max_ouput_token = self._getSummaryLength(prompt=prompt)
 
             gen_options = {
-                "num_predict": self.config.max_ctx,
-                "num_ctx": self.config.n_ctx,
+                "num_predict": max_ouput_token,
+                "num_ctx": CONST_max_tokens,
                 "temperature": self.config.temperature,
                 "top_k": self.config.top_k,
                 "top_p": self.config.top_p,

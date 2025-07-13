@@ -31,8 +31,7 @@ class Config:
     """Configuration settings for the summarization pipeline."""
 
     # Model parameters
-    N_CTX: int = 35000
-    MAX_CTX: int = 8200
+    max_tokens: int = 35000
     TEMPERATURE: float = 0.6
     TOP_K: int = 40
     TOP_P: float = 0.95
@@ -99,6 +98,18 @@ class ArticleSummarizer:
         text = re.sub(r"\n{2,}", "\n", text).strip()
         return text
 
+    def _getSummaryLength(self,prompt: str) -> int:
+        token_info = ollama.embed(model=self.config.MODEL_NAME, input=prompt)
+        total_tokens = token_info.prompt_eval_count
+
+        if total_tokens is None:
+            logging.error(f"token count none {token_info}.")
+            sys.exit(1)
+
+        thirty_percent = total_tokens * 0.3
+
+        return min(thirty_percent, self.config.max_tokens)
+
     def _extract_thinking_content(self, response_text: str) -> str:
         """Extract content after thinking tags."""
         parts = response_text.split("</think>")
@@ -151,11 +162,13 @@ Recent Changes made in the article:
 
     def _generate_summary_with_ollama(self, prompt: str, title: str) -> str:
         """Generate summary using Ollama API."""
+
+        max_num_predict = self._getSummaryLength(prompt)
         try:
             with self.console.status("[bold green]Generating summary..."):
                 gen_options = {
-                    "num_predict": self.config.MAX_CTX,
-                    "num_ctx": self.config.N_CTX,
+                    "num_predict": max_num_predict,
+                    "num_ctx": self.config.max_tokens,
                     "temperature": self.config.TEMPERATURE,
                     "top_k": self.config.TOP_K,
                     "top_p": self.config.TOP_P,
