@@ -125,15 +125,15 @@ Recent Changes made in the article:
 
     except RequestError as chatFailed:
         logging.error(f"Request failed: {chatFailed}")
-        return "NULL"
+        sys.exit(1)
 
     except ResponseError as chatFailed:
         logging.error(f"Response error: {chatFailed}")
-        return "NULL"
+        sys.exit(1)
 
     except Exception as chatFailed:
         logging.error(f"Failed to load model: {chatFailed}")
-        return "NULL"
+        sys.exit(1)
 
     response = output.message.content
     response = stripThinkingPart(response)
@@ -154,3 +154,4 @@ try:
     logging.info(f"Summaries saved to {output_file_path}")
 except Exception as e:
     logging.error(f"Failed to save summaries: {e}")
+    sys.exit(1)
