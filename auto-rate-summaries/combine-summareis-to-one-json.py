@@ -7,6 +7,7 @@ CONST_LLM1_RAG_SUMMARY_KEY="llm1RagSummary"
 CONST_LLM1_SUMMARY_KEY="llm1Summary"
 CONST_LLM2_SUMMARY_KEY="llm2Summary"
 CONST_LLM3_SUMMARY_KEY="llm3Summary"
+CONST_SLM_SUMMARY_KEY="slmSummary"
 
 def find_json_files(directory):
     json_files = []
@@ -51,6 +52,7 @@ def merge_json_files(json_files_paths):
                         CONST_LLM1_SUMMARY_KEY: "",
                         CONST_LLM2_SUMMARY_KEY: "",
                         CONST_LLM3_SUMMARY_KEY: "",
+                        CONST_SLM_SUMMARY_KEY: "",
                     },
                 }
 
@@ -60,7 +62,8 @@ def merge_json_files(json_files_paths):
                 CONST_LLM1_RAG_SUMMARY_KEY,
                 CONST_LLM1_SUMMARY_KEY,
                 CONST_LLM2_SUMMARY_KEY,
-                CONST_LLM3_SUMMARY_KEY
+                CONST_LLM3_SUMMARY_KEY,
+                CONST_SLM_SUMMARY_KEY,
             ]:
                 if article.get(key):
                     summaries[key] = article[key]

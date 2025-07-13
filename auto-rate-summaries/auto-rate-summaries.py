@@ -205,6 +205,47 @@ class ResponseProcessor:
         return main_part
 
 
+def generate_summary_evaluation_prompt(summaries: dict[str,str], main_text):
+    """
+    Alternative version with cleaner formatting.
+    """
+    n_summaries = len(summaries)
+    summary_keys = list(summaries.keys())
+
+    # Build the prompt dynamically
+    prompt_parts = [
+        f"I have given you an article and {n_summaries} summaries on the article,",
+        f"provide score out of ten for {summary_keys} on these four metrics — Coherence, Consistency, Fluency, and Relevance.",
+        "Scores Should be in JSON format.",
+        "Your response should contain no comments, notes, or explanations.",
+        "",
+        "[Article]:",
+        main_text,
+        ""
+    ]
+
+    # Add each summary section
+    for key, value in summaries.items():
+        prompt_parts.extend([f"[{key}]:", value, ""])
+
+    # Remove the last empty string to avoid trailing newline
+    if prompt_parts and prompt_parts[-1] == "":
+        prompt_parts.pop()
+
+    return "\n".join(prompt_parts)
+
+def extract_main_text(article: Dict[str, Any]) -> str:
+    """Extract main text from article."""
+    try:
+        sections = article.get("content", {}).get("sections", [])
+        return sections[0].get("text", "")
+    except IndexError:
+        logging.error("sections list is empty")
+        sys.exit(1)
+    except (KeyError, TypeError) as e:
+        logging.error(f"Error accessing article structure: {e}")
+        sys.exit(1)
+
 class SummaryEvaluator:
     """Main class for evaluating summary quality."""
 
@@ -249,47 +290,20 @@ class SummaryEvaluator:
         return in_valid
 
     @staticmethod
-    def _create_evaluation_prompt(self, article: Dict[str, Any]) -> str:
-        """Create the evaluation prompt for the LLM."""
-        sections = article.get("content", {}).get("sections", [])
-        main_text = sections[0].get("text", "") if sections else None
+    def _extract_summaries(self, article: Dict[str, Any]) -> dict[str, str]:
+        """extract summaries for a given article"""
+
         summary_sections = article["summaries"]
 
-        summaries = {
-            "llm1RagSummary": summary_sections.get("llm1RagSummary", ""),
-            "llm1Summary":summary_sections.get("llm1Summary", ""),
-            "llm2Summary": summary_sections.get("llm2Summary", ""),
-            "llm3Summary": summary_sections.get("llm3Summary", ""),
-        }
+        summaries = {key: summary_sections.get(key, "") for key in summary_sections}
 
         invalid = self.check_empty_summaries(summaries, article.get("title", ""))
         if invalid:
             return ""
 
-        n_summaries = len(summaries)
-        summary_keys = list(summaries.keys())
+        return summaries
 
-        return f"""
-I have given you an article and {n_summaries} summaries on the article, 
-provide score out of ten for {summary_keys}  on these four metrics — Coherence, Consistency, Fluency, and Relevance.
-Scores Should be in JSON format.
-Your response should contain no comments, notes, or explanations.
 
-[Article]:  
-{main_text}
-
-[llm1RagSummary]:  
-{summaries['llm1RagSummary']}
-
-[llm1Summary]:  
-{summaries['llm1Summary']}
-[llm2Summary]:  
-{summaries['llm2Summary']}
-[llm3Summary]:  
-{summaries['llm3Summary']}
-
-/think
-"""
 
     def _validate_context_length(self, prompt: str) -> bool:
         """Check if prompt fits within a context window."""
@@ -331,7 +345,11 @@ Your response should contain no comments, notes, or explanations.
         """Evaluate summaries for a single article."""
         article_id = article.get("article_id", "unknown")
 
-        prompt = self._create_evaluation_prompt(self, article)
+
+        summaries= self._extract_summaries(self, article)
+        main_text = extract_main_text(article)
+
+        prompt = generate_summary_evaluation_prompt(summaries, main_text)
         if prompt == "":
             return {"error": "one or more summary is empty"}
 
