@@ -87,6 +87,7 @@ Ensure to capture the following segemnts:
 - key aspects
 - historical context
 - recent changes made in the article.
+NOTE: size of the summary should be roughly 30% of the Article.
 
 Article:
 {main_text}
@@ -108,7 +109,6 @@ Recent Changes made in the article:
                 "min_p": 0.05,
             }
             output: ollama.ChatResponse = ollama.chat(
-                # model="hf.co/unsloth/Jan-nano-128k-GGUF:BF16",
                 model=llmModel,
                 messages=[
                     {

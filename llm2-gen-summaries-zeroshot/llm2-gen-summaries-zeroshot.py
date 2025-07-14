@@ -91,17 +91,6 @@ class ArticleSummarizer:
         text = re.sub(r"\n{2,}", "\n", text).strip()
         return text
 
-    def _getSummaryLength(self,prompt: str) -> int:
-        token_info = ollama.embed(model=self.config.MODEL_NAME, input=prompt)
-        total_tokens = token_info.prompt_eval_count
-
-        if total_tokens is None:
-            logging.error(f"token count none {token_info}.")
-            sys.exit(1)
-
-        thirty_percent = total_tokens * 0.3
-
-        return min(thirty_percent, self.config.max_tokens)
 
     def _extract_thinking_content(self, response_text: str) -> str:
         """Extract content after thinking tags."""
@@ -120,6 +109,7 @@ Ensure to capture the following segments:
 - key aspects
 - historical context
 - recent changes made in the article.
+NOTE: size of the summary should be roughly 30% of the Article.
 
 Article:
 {main_text}
@@ -153,13 +143,13 @@ Recent Changes made in the article:
 
         return main_text, recent_changes
 
-    def _generate_summary_with_ollama(self, prompt: str, title: str,max_num_predict: int) -> str:
+    def _generate_summary_with_ollama(self, prompt: str) -> str:
         """Generate summary using Ollama API."""
 
         try:
             with self.console.status("[bold green]Generating summary..."):
                 gen_options = {
-                    "num_predict": max_num_predict,
+                    "num_predict": self.config.max_tokens,
                     "num_ctx": self.config.max_tokens,
                     "temperature": self.config.TEMPERATURE,
                     "top_k": self.config.TOP_K,
@@ -191,8 +181,7 @@ Recent Changes made in the article:
             return "NULL"
 
         prompt = self._build_prompt(main_text, recent_changes)
-        max_num_predict = self._getSummaryLength(prompt)
-        return self._generate_summary_with_ollama(prompt, title, max_num_predict)
+        return self._generate_summary_with_ollama(prompt, title)
 
     def _save_results(self, articles: List[Dict]) -> None:
         """Save processed articles with summaries to output file."""

@@ -208,18 +208,6 @@ class RAGSummaryGenerator:
         """Remove underscores from title."""
         return title.replace("_", " ")
 
-    def _getSummaryLength(self,prompt: str) -> int:
-        token_info = ollama.embed(model=self.config.llm_model, input=prompt)
-        total_tokens = token_info.prompt_eval_count
-
-        if total_tokens is None:
-            logging.error(f"token count none {token_info}.")
-            sys.exit(1)
-
-        thirty_percent = total_tokens * 0.3
-
-        return min(thirty_percent, CONST_max_tokens)
-
     @staticmethod
     def _construct_prompt(self, context: str) -> str:
         """Construct the prompt for the language model."""
@@ -229,6 +217,7 @@ Follow these three instructions:
    consider historical context, significance, key aspects and recent changes made in the article.
 2. Your responses should be strictly from the article provided nothing else.
 3. Do not mention that it's a summary, and also do not mention anything about instructions given to you.
+NOTE: size of the summary should be roughly 30% of the Article.
 
 Article:
 {context}
@@ -255,10 +244,9 @@ Article:
         """Generate response using the LLM."""
         try:
             prompt = self._construct_prompt(self=self,context=context)
-            max_ouput_token = self._getSummaryLength(prompt=prompt)
 
             gen_options = {
-                "num_predict": max_ouput_token,
+                "num_predict": CONST_max_tokens,
                 "num_ctx": CONST_max_tokens,
                 "temperature": self.config.temperature,
                 "top_k": self.config.top_k,

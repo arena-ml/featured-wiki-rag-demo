@@ -71,7 +71,7 @@ def generate_summary(article):
         return "No content available for summarization."
 
     main_text = ""
-    recenttChange = ""
+    recent_change = ""
     for section in sections:
         main_text = f"\nArticle:\n{clean_text(section.get("text", ""))}\n\n"
         changes = section.get("changes", [])
@@ -79,7 +79,7 @@ def generate_summary(article):
             changesText = "\n".join(
                 f"- {chg.get('change_summary', 'No summary')}" for chg in changes
             )
-            recenttChange = f"\n[Recent Changes]:\n{changesText}\n\n"
+            recent_change = f"\n[Recent Changes]:\n{changesText}\n\n"
 
     prompt = f"""
 Remember to not explain your actions or make any reference to requests made to you, in your response.
@@ -91,12 +91,13 @@ Ensure to capture the following segemnts:
 - key aspects
 - historical context
 - recent changes made in the article.
+NOTE: size of the summary should be roughly 30% of the Article.
 
 Article:
 {main_text}
 
 Recent Changes made in the article:
-{recenttChange}
+{recent_change}
 
 /think
 """
@@ -104,7 +105,7 @@ Recent Changes made in the article:
     try:
         with console.status("[bold green]Generating summary..."):
 
-            genOpts = {
+            model_opts = {
                 "num_predict": CONST_MAX_CTX,
                 "num_ctx": CONST_N_CTX,
                 "temperature": 0.6,
@@ -120,7 +121,7 @@ Recent Changes made in the article:
                         "content": prompt,
                     },
                 ],
-                options=genOpts,
+                options=model_opts,
             )
 
     except RequestError as chatFailed:
