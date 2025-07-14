@@ -32,8 +32,8 @@ class Config:
 
     ARTICLES_FILE_PATH: str = "merged_articles.json"
     OUTPUT_FILE_PATH: str = "SummaryRatings.json"
-    N_CTX: int = 40000
-    MAX_CTX: int = 1200
+    N_CTX: int = 44000
+    MAX_CTX: int = 1300
     MODEL_NAME: str =  os.getenv("MODEL_NAME")
     TEMPERATURE: float = 0.4
     CONSOLE_WIDTH: int = 120

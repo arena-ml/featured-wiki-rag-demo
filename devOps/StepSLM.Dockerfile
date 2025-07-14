@@ -1,6 +1,6 @@
 FROM nvidia/cuda:12.8.1-base-ubuntu24.04
 
-ARG MODEL_NAME=hf.co/unsloth/SmolLM3-3B-GGUF:BF16
+ARG MODEL_NAME=hf.co/unsloth/SmolLM3-3B-128K-GGUF:BF16
 # Set environment variables for optimization
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
