@@ -25,26 +25,18 @@ from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 
 CONST_SERVICE_NAME = "fetch-wiki-data"
-
-# # Configure logging
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-#     handlers=[logging.StreamHandler()],
-# )
-# logging = logging.getlogging("fetch_wikiArticles")
+CONST_OUTPUT_PATH="WikiRC_StepOne.json"
 
 # Configure session for reuse
 session = requests.Session()
 session.headers.update(
-    # {
-    #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    # }
     {
         "User-Agent": "MyWikiApp/1.0 (myemail@example.com)"
     }
 
 )
+
+
 
 class TelemetrySetup:
     """Sets up OpenTelemetry logging and OpenLIT monitoring."""
@@ -90,7 +82,7 @@ class ArticlesWithRecentChanges:
         """
 
         # Handle log level conversion
-        log_level_str = config.get("LOG_LEVEL", "DEBUG")
+        log_level_str = os.getenv("LOG_LEVEL","DEBUG")
         log_level_map = {
             "DEBUG": logging.DEBUG,
             "INFO": logging.INFO,
@@ -101,7 +93,7 @@ class ArticlesWithRecentChanges:
         log_level = log_level_map.get(log_level_str, logging.DEBUG)
 
         self.hours = config["hours"]
-        self.output_path = config["output_path"]
+        self.output_path = CONST_OUTPUT_PATH
         self.api_url = "https://en.wikipedia.org/w/api.php"
         self.cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.hours)
         self.max_workers = config.get("max_workers", 5)
@@ -197,7 +189,8 @@ class ArticlesWithRecentChanges:
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             logging.error(f"Failed to fetch data for {date}. Error: {e}")
-            return []
+            sys.exit(1)
+
 
         articles_list = []
         data = response.json()
@@ -209,17 +202,18 @@ class ArticlesWithRecentChanges:
                 articles_list.append(tfa["title"])
         except Exception as e:
             logging.error(f"Error fetching featured article title: {e}")
-            return []
+
 
         # Process most read articles
         try:
             most_read_articles = data.get("mostread", {})
             for article in most_read_articles.get("articles", []):
                 if article.get("type", "") == "standard":
-                    articles_list.append(article["title"])
+                    if article["title"] not in articles_list:
+                        articles_list.append(article["title"])
         except Exception as e:
             logging.error(f"Error fetching most read article titles: {e}")
-            return []
+
 
         # Process news articles
         try:
@@ -227,25 +221,33 @@ class ArticlesWithRecentChanges:
                 links = news.get("links", [])
                 for link in links:
                     if link.get("type", "") == "standard":
-                        articles_list.append(link["title"])
+                        if link["title"] not in articles_list:
+                            articles_list.append(link["title"])
         except Exception as e:
             logging.error(f"Error fetching news article titles: {e}")
-            return []
 
         # Process on this day articles
         try:
             for otd in data.get("onthisday", []):
                 pages = otd.get("pages", [])
                 for page in pages:
-                    articles_list.append(page["title"])
+                    if page["title"] not in articles_list:
+                        articles_list.append(page["title"])
         except Exception as e:
             logging.error(f"Error fetching on this day articles titles, error: {e}")
-            return []
+
+        if len(articles_list) == 0:
+            logging.error(f"No articles found for {date}, unexpected error")
+            sys.exit(0)
 
         articles_have_recent_changes = []
         for article_title in articles_list:
             if self.recent_changes_exist(article_title,self.cutoff_time):
                 articles_have_recent_changes.append(article_title)
+            # in case aritcle_list >> max_articles limit
+            # choosing random from thrice size is good enough.
+            if len(articles_have_recent_changes) >= self.max_articles*3:
+                break
 
 
         random_articles = random.sample(articles_have_recent_changes, int(self.max_articles))
@@ -263,10 +265,10 @@ class ArticlesWithRecentChanges:
             Set of unique article titles.
         """
         todays_date = self.todays_date()
-        most_viewed_articles = self.get_featuredArticlesList(date=todays_date)
+        articles_list = self.get_featuredArticlesList(date=todays_date)
 
         # Using a set for automatic deduplication
-        return set(most_viewed_articles)
+        return set(articles_list)
 
     @lru_cache(maxsize=128)
     def fetch_article_text(self, page_title: str) -> str:
@@ -370,6 +372,11 @@ class ArticlesWithRecentChanges:
                 revision_time = datetime.strptime(
                     timestamp, "%Y-%m-%dT%H:%M:%SZ"
                 ).replace(tzinfo=timezone.utc)
+
+                # it's possible this revisoin gets between checking if revision
+                # exists and fetching the revisoin thus article ends with false
+                # positive for having recent changes within cut-off time.
+
                 if revision_time > cutoff_time:
                     has_recent_changes = True
                     break
@@ -487,6 +494,7 @@ class ArticlesWithRecentChanges:
                 return article_data
         except Exception as e:
             logging.error(f"Error processing article '{article_title}': {e}")
+            sys.exit(1)
 
         return None
 
@@ -512,7 +520,7 @@ class ArticlesWithRecentChanges:
             )
         except Exception as e:
             logging.error(f"Error fetching articles titles: {e}")
-            article_titles = set()
+            sys.exit(1)
 
         # Process articles in parallel
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -531,6 +539,7 @@ class ArticlesWithRecentChanges:
                         dataset.append(result)
                 except Exception as e:
                     logging.error(f"Error processing article '{article_title}': {e}")
+                    sys.exit(1)
 
         # Generate summary statistics
         if dataset:
@@ -542,7 +551,8 @@ class ArticlesWithRecentChanges:
                 f"Saved data for {len(dataset)} articles with recent changes to {self.output_path}"
             )
         else:
-            logging.info("No recent changes found. Dataset not created.")
+            logging.error("No recent changes found,unexpected. Dataset not created.")
+            sys.exit(1)
 
 
 def parse_args() -> argparse.Namespace:
@@ -553,10 +563,6 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--hours", type=int, default=72, help="Number of hours to look back for changes"
-    )
-
-    parser.add_argument(
-        "--output", "-o", default="WikiRC_StepOne.json", help="Output JSON file path"
     )
 
     parser.add_argument(
@@ -582,10 +588,8 @@ def main() -> None:
 
     config = {
         "hours": args.hours,
-        "output_path": args.output,
         "max_workers": args.threads,
         "max_articles": args.articles,
-        "LOG_LEVEL": logging.DEBUG,
     }
 
     wrc = ArticlesWithRecentChanges(config)

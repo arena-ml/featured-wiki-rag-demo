@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import sys
 import logging
 
@@ -7,6 +8,7 @@ CONST_LLM1_RAG_SUMMARY_KEY="llm1RagSummary"
 CONST_LLM1_SUMMARY_KEY="llm1Summary"
 CONST_LLM2_SUMMARY_KEY="llm2Summary"
 CONST_LLM3_SUMMARY_KEY="llm3Summary"
+CONST_SLM_SUMMARY_KEY="slmSummary"
 
 def find_json_files(directory):
     json_files = []
@@ -28,42 +30,118 @@ def get_json_file(file_path):
         sys.exit(1)
 
 
+# def merge_json_files(json_files_paths):
+#     merged_articles = {}
+#
+#     for file_path in json_files_paths:
+#         articles = get_json_file(file_path)
+#
+#         for article in articles:
+#             print("Type:", type(article))
+#             if type(article) != dict:
+#                 continue
+#             article_id = article.get("article_id")
+#
+#             if article_id not in merged_articles:
+#                 # Copy the structure excluding summaries
+#                 merged_articles[article_id] = {
+#                     "article_id": article_id,
+#                     "title": article.get("title", ""),
+#                     "content": article.get("content", {}),
+#                     "summaries": {
+#                         CONST_LLM1_RAG_SUMMARY_KEY :"",
+#                         CONST_LLM1_SUMMARY_KEY: "",
+#                         CONST_LLM2_SUMMARY_KEY: "",
+#                         CONST_LLM3_SUMMARY_KEY: "",
+#                         CONST_SLM_SUMMARY_KEY: "",
+#                     },
+#                 }
+#
+#             # Update summaries if present
+#             summaries = merged_articles[article_id]["summaries"]
+#             for key in [
+#                 CONST_LLM1_RAG_SUMMARY_KEY,
+#                 CONST_LLM1_SUMMARY_KEY,
+#                 CONST_LLM2_SUMMARY_KEY,
+#                 CONST_LLM3_SUMMARY_KEY,
+#                 CONST_SLM_SUMMARY_KEY,
+#             ]:
+#                 if article.get(key):
+#                     summaries[key] = article[key]
+#
+#     return merged_articles
+
 def merge_json_files(json_files_paths):
+    """
+    Advanced version with customizable summary key detection patterns.
+    """
     merged_articles = {}
+    summary_keys = set()
 
+    # Default patterns for summary key detection
+    default_patterns = [
+        r'.*summary.*',
+        r'.*Summary.*',
+    ]
+
+    patterns = default_patterns
+
+    compiled_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in patterns]
+
+    # First pass: discover summary keys
+    print("Discovering summary keys with patterns...")
     for file_path in json_files_paths:
-        articles = get_json_file(file_path)
+        try:
+            articles = get_json_file(file_path)
+            for article in articles:
+                if not isinstance(article, dict):
+                    continue
 
-        for article in articles:
-            print("Type:", type(article))
-            if type(article) != dict:
-                continue
-            article_id = article.get("article_id")
+                for key in article.keys():
+                    # Skip standard article fields
+                    if key in ['article_id', 'title', 'content', 'summaries']:
+                        continue
 
-            if article_id not in merged_articles:
-                # Copy the structure excluding summaries
-                merged_articles[article_id] = {
-                    "article_id": article_id,
-                    "title": article.get("title", ""),
-                    "content": article.get("content", {}),
-                    "summaries": {
-                        CONST_LLM1_RAG_SUMMARY_KEY :"",
-                        CONST_LLM1_SUMMARY_KEY: "",
-                        CONST_LLM2_SUMMARY_KEY: "",
-                        CONST_LLM3_SUMMARY_KEY: "",
-                    },
-                }
+                    # Check if key matches any summary pattern
+                    if any(pattern.match(key) for pattern in compiled_patterns):
+                        summary_keys.add(key)
 
-            # Update summaries if present
-            summaries = merged_articles[article_id]["summaries"]
-            for key in [
-                CONST_LLM1_RAG_SUMMARY_KEY,
-                CONST_LLM1_SUMMARY_KEY,
-                CONST_LLM2_SUMMARY_KEY,
-                CONST_LLM3_SUMMARY_KEY
-            ]:
-                if article.get(key):
-                    summaries[key] = article[key]
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+            continue
+
+    summary_keys = sorted(list(summary_keys))
+    print(f"Found summary keys: {summary_keys}")
+
+    # Second pass: merge articles (same as before)
+    for file_path in json_files_paths:
+        try:
+            articles = get_json_file(file_path)
+
+            for article in articles:
+                if not isinstance(article, dict):
+                    continue
+
+                article_id = article.get("article_id")
+                if not article_id:
+                    continue
+
+                if article_id not in merged_articles:
+                    merged_articles[article_id] = {
+                        "article_id": article_id,
+                        "title": article.get("title", ""),
+                        "content": article.get("content", {}),
+                        "summaries": {key: "" for key in summary_keys},
+                    }
+
+                summaries = merged_articles[article_id]["summaries"]
+                for key in summary_keys:
+                    if key in article and article[key]:
+                        summaries[key] = article[key]
+
+        except Exception as e:
+            print(f"Error processing {file_path}: {e}")
+            continue
 
     return merged_articles
 

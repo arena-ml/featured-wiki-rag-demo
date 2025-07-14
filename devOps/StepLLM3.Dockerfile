@@ -5,7 +5,6 @@ ARG MODEL_NAME=hf.co/unsloth/Jan-nano-128k-GGUF:BF16
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     KMP_DUPLICATE_LIB_OK=TRUE \
-    OLLAMA_DEBUG=1 \
     PIP_INDEX_URL=https://pypi.org/simple \
     PIP_PYPI_URL=https://pypi.org/simple \
     TZ=UTC \
