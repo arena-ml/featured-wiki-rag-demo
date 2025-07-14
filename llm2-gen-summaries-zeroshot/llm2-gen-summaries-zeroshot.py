@@ -143,7 +143,7 @@ Recent Changes made in the article:
 
         return main_text, recent_changes
 
-    def _generate_summary_with_ollama(self, prompt: str) -> str:
+    def _generate_summary_with_ollama(self, prompt: str,title :str) -> str:
         """Generate summary using Ollama API."""
 
         try:
@@ -181,7 +181,7 @@ Recent Changes made in the article:
             return "NULL"
 
         prompt = self._build_prompt(main_text, recent_changes)
-        return self._generate_summary_with_ollama(prompt, title)
+        return self._generate_summary_with_ollama(prompt,title)
 
     def _save_results(self, articles: List[Dict]) -> None:
         """Save processed articles with summaries to output file."""
