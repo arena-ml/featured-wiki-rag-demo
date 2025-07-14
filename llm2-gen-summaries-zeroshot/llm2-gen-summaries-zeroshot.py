@@ -42,14 +42,7 @@ class Config:
     OUTPUT_FILE: str = "llm2-summaries-using-zeroshot.json"
 
     # Environment
-    MODEL_NAME: Optional[str] = None
-
-    def __post_init__(self):
-        """Validate configuration after initialization."""
-        self.MODEL_NAME = os.getenv("MODEL_NAME")
-        if not self.MODEL_NAME:
-            sys.exit("MODEL_NAME environment variable not set")
-
+    MODEL_NAME = os.getenv("MODEL_NAME")
 
 class ArticleSummarizer:
     """Main class for handling article summarization pipeline."""
@@ -160,10 +153,9 @@ Recent Changes made in the article:
 
         return main_text, recent_changes
 
-    def _generate_summary_with_ollama(self, prompt: str, title: str) -> str:
+    def _generate_summary_with_ollama(self, prompt: str, title: str,max_num_predict: int) -> str:
         """Generate summary using Ollama API."""
 
-        max_num_predict = self._getSummaryLength(prompt)
         try:
             with self.console.status("[bold green]Generating summary..."):
                 gen_options = {
@@ -199,7 +191,8 @@ Recent Changes made in the article:
             return "NULL"
 
         prompt = self._build_prompt(main_text, recent_changes)
-        return self._generate_summary_with_ollama(prompt, title)
+        max_num_predict = self._getSummaryLength(prompt)
+        return self._generate_summary_with_ollama(prompt, title, max_num_predict)
 
     def _save_results(self, articles: List[Dict]) -> None:
         """Save processed articles with summaries to output file."""
