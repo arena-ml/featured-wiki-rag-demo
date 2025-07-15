@@ -1,7 +1,7 @@
 """
 LLM Summary Evaluation System
 
-This module evaluates the quality of LLM-generated summaries using multiple metrics
+evaluate the quality of LLM-generated summaries using multiple metrics
 and sends the results to an OpenTelemetry metrics collector.
 """
 

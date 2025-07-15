@@ -26,6 +26,7 @@ from opentelemetry.sdk.resources import Resource
 
 CONST_SERVICE_NAME = "fetch-wiki-data"
 CONST_OUTPUT_PATH="WikiRC_StepOne.json"
+CONST_TIME_FILE="time.json"
 
 # Configure session for reuse
 session = requests.Session()
@@ -92,16 +93,66 @@ class ArticlesWithRecentChanges:
         }
         log_level = log_level_map.get(log_level_str, logging.DEBUG)
 
+        trigger_time = self.parse_datetime_from_json(CONST_TIME_FILE)
+        if trigger_time is None:
+            logging.warn("trigger time not set, using current time")
+            trigger_time = datetime.now()
+            
         self.hours = config["hours"]
         self.output_path = CONST_OUTPUT_PATH
         self.api_url = "https://en.wikipedia.org/w/api.php"
-        self.cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.hours)
+        self.cutoff_time = trigger_time - timedelta(hours=self.hours)
         self.max_workers = config.get("max_workers", 5)
         self.max_articles = config.get("max_articles", 10)
         self.telemetry = TelemetrySetup()
         self.log_level = log_level
         self.max_recent_changes = 50
 
+    @staticmethod
+    def parse_datetime_from_json(file_path: str) -> Optional[datetime]:
+            """
+            Parse datetime from a JSON file containing a 'datetime' field.
+
+            Args:
+                file_path (str): Path to the JSON file
+
+            Returns:
+                datetime: Parsed datetime object, or None if parsing fails
+
+            Raises:
+                FileNotFoundError: If the file doesn't exist
+                json.JSONDecodeError: If the file contains invalid JSON
+                KeyError: If the 'datetime' field is missing from the JSON
+            """
+            try:
+                with open(file_path, 'r') as file:
+                    data = json.load(file)
+
+                # Extract datetime string from JSON
+                datetime_str = data['datetime']
+
+                # Parse the ISO format datetime string
+                # Handle the Z suffix for UTC timezone
+                if datetime_str.endswith('Z'):
+                    datetime_str = datetime_str[:-1] + '+00:00'
+
+                # Parse the datetime string
+                dt = datetime.fromisoformat(datetime_str)
+
+                return dt
+
+            except FileNotFoundError:
+                logging.error(f"Error: File '{file_path}' not found.")
+                return None
+            except json.JSONDecodeError as e:
+                logging.error(f"Error: Invalid JSON in file '{file_path}': {e}")
+                return None
+            except KeyError:
+                logging.error(f"Error: 'datetime' field not found in JSON file '{file_path}'.")
+                return None
+            except ValueError as e:
+                logging.error(f"Error: Invalid datetime format in file '{file_path}': {e}")
+                return None
 
     def setup_logging(self) -> None:
         """Configure logging with telemetry."""
@@ -373,7 +424,7 @@ class ArticlesWithRecentChanges:
                     timestamp, "%Y-%m-%dT%H:%M:%SZ"
                 ).replace(tzinfo=timezone.utc)
 
-                # it's possible this revisoin gets between checking if revision
+                # NOTE: it's possible this revisoin gets between checking if revision
                 # exists and fetching the revisoin thus article ends with false
                 # positive for having recent changes within cut-off time.
 

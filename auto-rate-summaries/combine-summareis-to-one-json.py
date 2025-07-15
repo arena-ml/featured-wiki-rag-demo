@@ -4,12 +4,6 @@ import re
 import sys
 import logging
 
-CONST_LLM1_RAG_SUMMARY_KEY="llm1RagSummary"
-CONST_LLM1_SUMMARY_KEY="llm1Summary"
-CONST_LLM2_SUMMARY_KEY="llm2Summary"
-CONST_LLM3_SUMMARY_KEY="llm3Summary"
-CONST_SLM_SUMMARY_KEY="slmSummary"
-
 def find_json_files(directory):
     json_files = []
     for root, dirs, files in os.walk(directory):
@@ -28,48 +22,6 @@ def get_json_file(file_path):
     except json.JSONDecodeError:
         logging.error("Failed to decode JSON. Check file format.")
         sys.exit(1)
-
-
-# def merge_json_files(json_files_paths):
-#     merged_articles = {}
-#
-#     for file_path in json_files_paths:
-#         articles = get_json_file(file_path)
-#
-#         for article in articles:
-#             print("Type:", type(article))
-#             if type(article) != dict:
-#                 continue
-#             article_id = article.get("article_id")
-#
-#             if article_id not in merged_articles:
-#                 # Copy the structure excluding summaries
-#                 merged_articles[article_id] = {
-#                     "article_id": article_id,
-#                     "title": article.get("title", ""),
-#                     "content": article.get("content", {}),
-#                     "summaries": {
-#                         CONST_LLM1_RAG_SUMMARY_KEY :"",
-#                         CONST_LLM1_SUMMARY_KEY: "",
-#                         CONST_LLM2_SUMMARY_KEY: "",
-#                         CONST_LLM3_SUMMARY_KEY: "",
-#                         CONST_SLM_SUMMARY_KEY: "",
-#                     },
-#                 }
-#
-#             # Update summaries if present
-#             summaries = merged_articles[article_id]["summaries"]
-#             for key in [
-#                 CONST_LLM1_RAG_SUMMARY_KEY,
-#                 CONST_LLM1_SUMMARY_KEY,
-#                 CONST_LLM2_SUMMARY_KEY,
-#                 CONST_LLM3_SUMMARY_KEY,
-#                 CONST_SLM_SUMMARY_KEY,
-#             ]:
-#                 if article.get(key):
-#                     summaries[key] = article[key]
-#
-#     return merged_articles
 
 def merge_json_files(json_files_paths):
     """
