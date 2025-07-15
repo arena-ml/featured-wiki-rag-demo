@@ -97,7 +97,7 @@ class ArticlesWithRecentChanges:
         if trigger_time is None:
             logging.warn("trigger time not set, using current time")
             trigger_time = datetime.now()
-            
+
         self.hours = config["hours"]
         self.output_path = CONST_OUTPUT_PATH
         self.api_url = "https://en.wikipedia.org/w/api.php"
@@ -138,7 +138,7 @@ class ArticlesWithRecentChanges:
 
                 # Parse the datetime string
                 dt = datetime.fromisoformat(datetime_str)
-
+                logging.debug("Parsed datetime from %s to %s", datetime_str,dt.strftime("%m/%d/%Y %H:%M:%S"))
                 return dt
 
             except FileNotFoundError:
