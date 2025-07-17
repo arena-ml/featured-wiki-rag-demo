@@ -422,9 +422,10 @@ class ArticlesWithRecentChanges:
             revisions = page_info.get("revisions", [])
             for rev in revisions:
                 timestamp = rev.get("timestamp")
+
                 revision_time = datetime.strptime(
                     timestamp, "%Y-%m-%dT%H:%M:%SZ"
-                ).replace(tzinfo=timezone.utc)
+                ).replace(tzinfo=cutoff_time.tzinfo)
 
                 # NOTE: it's possible this revisoin gets between checking if revision
                 # exists and fetching the revisoin thus article ends with false
