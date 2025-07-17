@@ -11,7 +11,6 @@ import random
 import os
 import sys
 import logging
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -27,12 +26,7 @@ from opentelemetry.sdk.resources import Resource
 
 CONST_SERVICE_NAME = "fetch-wiki-data"
 CONST_OUTPUT_PATH="WikiRC_StepOne.json"
-<<<<<<< Updated upstream
-CONST_TIME_FILE="time.json"
-||||||| Stash base
-=======
 CONST_TIME_TRIGGER_ARTIFACT="time.json"
->>>>>>> Stashed changes
 
 # Configure session for reuse
 session = requests.Session()
@@ -98,37 +92,23 @@ class ArticlesWithRecentChanges:
             "CRITICAL": logging.CRITICAL
         }
         log_level = log_level_map.get(log_level_str, logging.DEBUG)
-
-        trigger_time = self.parse_datetime_from_json(CONST_TIME_FILE)
-        if trigger_time is None:
-            logging.warn("trigger time not set, using current time")
-            trigger_time = datetime.now()
+        self.log_level = log_level
+        self.telemetry = TelemetrySetup()
+        self.setup_logging()
 
         self.hours = config["hours"]
         self.output_path = CONST_OUTPUT_PATH
         self.api_url = "https://en.wikipedia.org/w/api.php"
-        self.cutoff_time = trigger_time - timedelta(hours=self.hours)
         self.max_workers = config.get("max_workers", 5)
         self.max_articles = config.get("max_articles", 10)
-<<<<<<< Updated upstream
-        self.telemetry = TelemetrySetup()
-        self.log_level = log_level
-||||||| Stash base
-        self.telemetry = TelemetrySetup()
-=======
->>>>>>> Stashed changes
         self.max_recent_changes = 50
-<<<<<<< Updated upstream
-||||||| Stash base
-        self.cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.hours)
-=======
+
 
         trigger_time = self.parse_datetime_from_json(CONST_TIME_TRIGGER_ARTIFACT)
         if trigger_time is None:
             trigger_time = datetime.now().astimezone()
             logging.debug(f"parse_datetime_from_json return NONE, using current time{trigger_time}")
         self.cutoff_time = trigger_time - timedelta(hours=self.hours)
->>>>>>> Stashed changes
 
     @staticmethod
     def parse_datetime_from_json(file_path: str) -> Optional[datetime]:
@@ -189,52 +169,6 @@ class ArticlesWithRecentChanges:
         # Add telemetry handler
         telemetry_handler = self.telemetry.setup()
         logging.getLogger().addHandler(telemetry_handler)
-    @staticmethod
-    def parse_datetime_from_json(file_path: str) -> Optional[datetime]:
-        """
-        Parse datetime from a JSON file containing a 'datetime' field.
-
-        Args:
-            file_path (str): Path to the JSON file
-
-        Returns:
-            datetime: Parsed datetime object, or None if parsing fails
-
-        Raises:
-            FileNotFoundError: If the file doesn't exist
-            json.JSONDecodeError: If the file contains invalid JSON
-            KeyError: If the 'datetime' field is missing from the JSON
-        """
-        try:
-            with open(file_path, 'r') as file:
-                data = json.load(file)
-
-            # Extract datetime string from JSON
-            datetime_str = data['datetime']
-
-            # Parse the ISO format datetime string
-            # Handle the Z suffix for UTC timezone
-            if datetime_str.endswith('Z'):
-                datetime_str = datetime_str[:-1] + '+00:00'
-
-            # Parse the datetime string
-            dt = datetime.fromisoformat(datetime_str)
-
-        except FileNotFoundError:
-            logging.warn(f"Error: File '{file_path}' not found.")
-            return None
-        except json.JSONDecodeError as e:
-            logging.warn(f"Error: Invalid JSON in file '{file_path}': {e}")
-            return None
-        except KeyError:
-            logging.warn(f"Error: 'datetime' field not found in JSON file '{file_path}'.")
-            return None
-        except ValueError as e:
-            logging.warn(f"Error: Invalid datetime format in file '{file_path}': {e}")
-            return None
-        finally:
-            logging.debug(f"Parsed datetime: {dt} fromm: '{datetime_str}'")
-            return dt
 
     # Slightly improves performance (since no self binding is needed: Prevents unnecessary access to the class instance)
     @staticmethod
