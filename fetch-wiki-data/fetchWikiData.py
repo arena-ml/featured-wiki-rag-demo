@@ -3,7 +3,6 @@
 Fetch Wikipedia articles with recent changes in readable format and store in json file
 """
 
-import argparse
 import hashlib
 import json
 import re
@@ -26,7 +25,10 @@ from opentelemetry.sdk.resources import Resource
 
 CONST_SERVICE_NAME = "fetch-wiki-data"
 CONST_OUTPUT_PATH="WikiRC_StepOne.json"
-CONST_TIME_FILE="time.json"
+CONST_TIME_TRIGGER_ARTIFACT="time.json"
+CONST_MAX_ARTICLES_KEY="max_articles"
+CONST_CUT_OFF_WINDOW_KEY="cut_off_window"
+CONST_MAX_THREADS_KEY="max_threads"
 
 # Configure session for reuse
 session = requests.Session()
@@ -92,21 +94,23 @@ class ArticlesWithRecentChanges:
             "CRITICAL": logging.CRITICAL
         }
         log_level = log_level_map.get(log_level_str, logging.DEBUG)
+        self.log_level = log_level
+        self.telemetry = TelemetrySetup()
+        self.setup_logging()
 
-        trigger_time = self.parse_datetime_from_json(CONST_TIME_FILE)
-        if trigger_time is None:
-            logging.warn("trigger time not set, using current time")
-            trigger_time = datetime.now()
-
-        self.hours = config["hours"]
+        self.hours = config[CONST_CUT_OFF_WINDOW_KEY]
         self.output_path = CONST_OUTPUT_PATH
         self.api_url = "https://en.wikipedia.org/w/api.php"
-        self.cutoff_time = trigger_time - timedelta(hours=self.hours)
-        self.max_workers = config.get("max_workers", 5)
-        self.max_articles = config.get("max_articles", 10)
-        self.telemetry = TelemetrySetup()
-        self.log_level = log_level
+        self.max_workers = config.get(CONST_MAX_THREADS_KEY, 5)
+        self.max_articles = config.get(CONST_MAX_ARTICLES_KEY, 10)
         self.max_recent_changes = 50
+
+
+        trigger_time = self.parse_datetime_from_json(CONST_TIME_TRIGGER_ARTIFACT)
+        if trigger_time is None:
+            trigger_time = datetime.now().astimezone()
+            logging.debug(f"parse_datetime_from_json return NONE, using current time{trigger_time}")
+        self.cutoff_time = trigger_time - timedelta(hours=self.hours)
 
     @staticmethod
     def parse_datetime_from_json(file_path: str) -> Optional[datetime]:
@@ -420,9 +424,10 @@ class ArticlesWithRecentChanges:
             revisions = page_info.get("revisions", [])
             for rev in revisions:
                 timestamp = rev.get("timestamp")
+
                 revision_time = datetime.strptime(
                     timestamp, "%Y-%m-%dT%H:%M:%SZ"
-                ).replace(tzinfo=timezone.utc)
+                ).replace(tzinfo=cutoff_time.tzinfo)
 
                 # NOTE: it's possible this revisoin gets between checking if revision
                 # exists and fetching the revisoin thus article ends with false
@@ -606,42 +611,26 @@ class ArticlesWithRecentChanges:
             sys.exit(1)
 
 
-def parse_args() -> argparse.Namespace:
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Fetches Wikipedia featured articles with recent changes"
-    )
+def get_config_from_env():
+    """Get configuration from environment variables."""
+    def get_int_env(var_name, default):
+        value = os.getenv(var_name, default)
+        try:
+            return int(value)
+        except ValueError:
+            print(f"Warning: Environment variable {var_name}='{value}' is not a valid integer. Using default: {default}")
+            return default
 
-    parser.add_argument(
-        "--hours", type=int, default=72, help="Number of hours to look back for changes"
-    )
-
-    parser.add_argument(
-        "--threads",
-        type=int,
-        default=10,
-        help="Maximum number of threads to use for parallel processing",
-    )
-
-    parser.add_argument(
-        "--articles",
-        type=int,
-        default=10,
-        help="max number of articles to process, articles will be choosen randomly",
-    )
-
-    return parser.parse_args()
-
+    config = {
+        CONST_CUT_OFF_WINDOW_KEY: get_int_env("CUTOFF_HOURS", 72),
+        CONST_MAX_THREADS_KEY: get_int_env("MAX_THREADS", 10),
+        CONST_MAX_ARTICLES_KEY: get_int_env("MAX_ARTICLES", 10),
+    }
+    return config
 
 def main() -> None:
     """Main entry point for the script."""
-    args = parse_args()
-
-    config = {
-        "hours": args.hours,
-        "max_workers": args.threads,
-        "max_articles": args.articles,
-    }
+    config = get_config_from_env()
 
     wrc = ArticlesWithRecentChanges(config)
     wrc.storeArticles()
