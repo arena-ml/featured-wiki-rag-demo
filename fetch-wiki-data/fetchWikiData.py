@@ -609,42 +609,26 @@ class ArticlesWithRecentChanges:
             sys.exit(1)
 
 
-def parse_args() -> argparse.Namespace:
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Fetches Wikipedia featured articles with recent changes"
-    )
+def get_config_from_env():
+    """Get configuration from environment variables."""
+    def get_int_env(var_name, default):
+        value = os.getenv(var_name, default)
+        try:
+            return int(value)
+        except ValueError:
+            print(f"Warning: Environment variable {var_name}='{value}' is not a valid integer. Using default: {default}")
+            return default
 
-    parser.add_argument(
-        "--hours", type=int, default=72, help="Number of hours to look back for changes"
-    )
-
-    parser.add_argument(
-        "--threads",
-        type=int,
-        default=10,
-        help="Maximum number of threads to use for parallel processing",
-    )
-
-    parser.add_argument(
-        "--articles",
-        type=int,
-        default=10,
-        help="max number of articles to process, articles will be choosen randomly",
-    )
-
-    return parser.parse_args()
-
+    config = {
+        "hours": get_int_env("CUTOFF_HOURS", 72),
+        "threads": get_int_env("MAX_THREADS", 10),
+        "articles": get_int_env("MAX_ARTICLES", 10),
+    }
+    return config
 
 def main() -> None:
     """Main entry point for the script."""
-    args = parse_args()
-
-    config = {
-        "hours": args.hours,
-        "max_workers": args.threads,
-        "max_articles": args.articles,
-    }
+    config = get_config_from_env()
 
     wrc = ArticlesWithRecentChanges(config)
     wrc.storeArticles()
