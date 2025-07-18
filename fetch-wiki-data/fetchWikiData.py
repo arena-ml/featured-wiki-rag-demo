@@ -3,7 +3,6 @@
 Fetch Wikipedia articles with recent changes in readable format and store in json file
 """
 
-import argparse
 import hashlib
 import json
 import re
