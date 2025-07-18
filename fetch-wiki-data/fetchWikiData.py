@@ -27,6 +27,9 @@ from opentelemetry.sdk.resources import Resource
 CONST_SERVICE_NAME = "fetch-wiki-data"
 CONST_OUTPUT_PATH="WikiRC_StepOne.json"
 CONST_TIME_TRIGGER_ARTIFACT="time.json"
+CONST_MAX_ARTICLES_KEY="max_articles"
+CONST_CUT_OFF_WINDOW_KEY="cut_off_window"
+CONST_MAX_THREADS_KEY="max_threads"
 
 # Configure session for reuse
 session = requests.Session()
@@ -96,11 +99,11 @@ class ArticlesWithRecentChanges:
         self.telemetry = TelemetrySetup()
         self.setup_logging()
 
-        self.hours = config["hours"]
+        self.hours = config[CONST_CUT_OFF_WINDOW_KEY]
         self.output_path = CONST_OUTPUT_PATH
         self.api_url = "https://en.wikipedia.org/w/api.php"
-        self.max_workers = config.get("max_workers", 5)
-        self.max_articles = config.get("max_articles", 10)
+        self.max_workers = config.get(CONST_MAX_THREADS_KEY, 5)
+        self.max_articles = config.get(CONST_MAX_ARTICLES_KEY, 10)
         self.max_recent_changes = 50
 
 
@@ -620,9 +623,9 @@ def get_config_from_env():
             return default
 
     config = {
-        "hours": get_int_env("CUTOFF_HOURS", 72),
-        "threads": get_int_env("MAX_THREADS", 10),
-        "articles": get_int_env("MAX_ARTICLES", 10),
+        CONST_CUT_OFF_WINDOW_KEY: get_int_env("CUTOFF_HOURS", 72),
+        CONST_MAX_THREADS_KEY: get_int_env("MAX_THREADS", 10),
+        CONST_MAX_ARTICLES_KEY: get_int_env("MAX_ARTICLES", 10),
     }
     return config
 
