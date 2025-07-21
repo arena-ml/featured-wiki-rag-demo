@@ -26,9 +26,9 @@ from opentelemetry.sdk.resources import Resource
 CONST_SERVICE_NAME = "fetch-wiki-data"
 CONST_OUTPUT_PATH="WikiRC_StepOne.json"
 CONST_TIME_TRIGGER_ARTIFACT="time.json"
-CONST_MAX_ARTICLES_KEY="max_articles"
-CONST_CUT_OFF_WINDOW_KEY="cut_off_window"
-CONST_MAX_THREADS_KEY="max_threads"
+CONST_MAX_ARTICLES_KEY="MAX_ARTICLES"
+CONST_CUT_OFF_WINDOW_KEY="CUTOFF_RANGE"
+CONST_MAX_THREADS_KEY="MAX_THREADS"
 
 # Configure session for reuse
 session = requests.Session()
@@ -98,14 +98,13 @@ class ArticlesWithRecentChanges:
         self.telemetry = TelemetrySetup()
         self.setup_logging()
 
-        self.hours = config[CONST_CUT_OFF_WINDOW_KEY]
         self.output_path = CONST_OUTPUT_PATH
         self.api_url = "https://en.wikipedia.org/w/api.php"
         self.max_workers = config.get(CONST_MAX_THREADS_KEY, 5)
         self.max_articles = config.get(CONST_MAX_ARTICLES_KEY, 10)
         self.max_recent_changes = 50
 
-
+        self.hours = config[CONST_CUT_OFF_WINDOW_KEY]
         trigger_time = self.parse_datetime_from_json(CONST_TIME_TRIGGER_ARTIFACT)
         if trigger_time is None:
             trigger_time = datetime.now().astimezone()
@@ -297,7 +296,7 @@ class ArticlesWithRecentChanges:
 
         articles_have_recent_changes = []
         for article_title in articles_list:
-            if self.recent_changes_exist(article_title,self.cutoff_time):
+            if self.recent_changes_exist_within_cutoff_time(article_title, self.cutoff_time):
                 articles_have_recent_changes.append(article_title)
             # in case aritcle_list >> max_articles limit
             # choosing random from thrice size is good enough.
@@ -386,7 +385,7 @@ class ArticlesWithRecentChanges:
 
         return "\n".join(simplified_diff) if simplified_diff else None
 
-    def recent_changes_exist(
+    def recent_changes_exist_within_cutoff_time(
         self, page_title: str, cutoff_time: datetime
     ) -> bool:
         """
@@ -429,7 +428,7 @@ class ArticlesWithRecentChanges:
                     timestamp, "%Y-%m-%dT%H:%M:%SZ"
                 ).replace(tzinfo=cutoff_time.tzinfo)
 
-                # NOTE: it's possible this revisoin gets between checking if revision
+                # NOTE: it's possible this revisoin gets removed by editors between checking if revision
                 # exists and fetching the revisoin thus article ends with false
                 # positive for having recent changes within cut-off time.
 
@@ -622,9 +621,9 @@ def get_config_from_env():
             return default
 
     config = {
-        CONST_CUT_OFF_WINDOW_KEY: get_int_env("CUTOFF_HOURS", 72),
-        CONST_MAX_THREADS_KEY: get_int_env("MAX_THREADS", 10),
-        CONST_MAX_ARTICLES_KEY: get_int_env("MAX_ARTICLES", 10),
+        CONST_CUT_OFF_WINDOW_KEY: get_int_env(CONST_CUT_OFF_WINDOW_KEY, 72),
+        CONST_MAX_THREADS_KEY: get_int_env(CONST_MAX_THREADS_KEY, 10),
+        CONST_MAX_ARTICLES_KEY: get_int_env(CONST_MAX_ARTICLES_KEY, 10),
     }
     return config
 

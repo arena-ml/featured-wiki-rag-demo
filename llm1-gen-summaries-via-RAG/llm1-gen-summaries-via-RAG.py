@@ -267,7 +267,7 @@ Article:
 
         except Exception as e:
             logging.error(f"Error during LLM response generation: {e}")
-            return "An error occurred while generating the model response."
+            sys.exit(1)
 
     def _process_article(self, article: Dict[str, Any]) -> Dict[str, Any]:
         """Process a single article to generate its summary."""
