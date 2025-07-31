@@ -54,7 +54,7 @@ def main():
     """Main entry point for the application."""
     try:
         config = Config()
-        summarizer = ArticleSummarizer(config)
+        summarizer = ArticleSummarizer(config=config)
         summarizer.run()
     except Exception as e:
         logging.error(f"Application failed to start: {e}")

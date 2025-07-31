@@ -16,7 +16,7 @@ import openlit
 class ArticleSummarizer:
     """Main class for handling article summarization pipeline."""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: any):
         self.config = config
         self.console = Console(width=120)
         self.logger = self._setup_logging()
