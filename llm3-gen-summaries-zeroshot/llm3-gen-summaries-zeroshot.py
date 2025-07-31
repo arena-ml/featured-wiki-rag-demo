@@ -6,15 +6,17 @@ This script processes Wikipedia articles and generates summaries using a languag
 It reads articles from a JSON file, generates summaries using the Ollama API,
 and saves the results to an output file.
 """
+import os
+import sys
+
+# adds the parent directory of the current script to Python’s module search path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import json
-import os
 import re
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-
 import ollama
 from ollama import RequestError, ResponseError
 import logging
