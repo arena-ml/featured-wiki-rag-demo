@@ -41,8 +41,8 @@ class Config:
     vector_store_path: str = "article_embeddings_db"
     collection_name: str = "article_embeddings"
     embedding_model: str = os.getenv("EMB_MODEL_NAME")
-    chunk_size: int = 3000
-    chunk_overlap: int = 50
+    chunk_size: int = 2000
+    chunk_overlap: int = 400
     log_level: int = logging.DEBUG
 
     @classmethod
