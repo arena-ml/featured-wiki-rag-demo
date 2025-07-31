@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-"""
-Article Summarization Pipeline
-
-This script processes Wikipedia articles and generates summaries using a language model.
-It reads articles from a JSON file, generates summaries using the Ollama API,
-and saves the results to an output file.
-"""
-
 import json
 import os
 import re
@@ -21,28 +12,6 @@ import logging
 from rich.console import Console
 from rich.markdown import Markdown
 import openlit
-
-# Initialize OpenLit for monitoring
-openlit.init(collect_gpu_stats=True, capture_message_content=False)
-
-
-@dataclass
-class Config:
-    """Configuration settings for the summarization pipeline."""
-
-    # Model parameters
-    max_tokens: int = 35000
-    TEMPERATURE: float = 0.6
-    TOP_K: int = 40
-    TOP_P: float = 0.95
-    MIN_P: float = 0.05
-
-    # File paths
-    ARTICLES_FILE: str = "WikiRC_StepOne.json"
-    OUTPUT_FILE: str = "llm2-summaries-using-zeroshot.json"
-
-    # Environment
-    MODEL_NAME = os.getenv("MODEL_NAME")
 
 class ArticleSummarizer:
     """Main class for handling article summarization pipeline."""
@@ -86,7 +55,7 @@ class ArticleSummarizer:
         # Remove references and external links sections
         text = re.sub(r"==\s*(References|External links)\s*==.*", "", text, flags=re.DOTALL)
         # Remove citation numbers
-        text = re.sub(r"\[[0-9]+\]", "", text)
+        text = re.sub(r"\[[0-9]+]", "", text)
         # Normalize whitespace
         text = re.sub(r"\n{2,}", "\n", text).strip()
         return text
@@ -210,7 +179,7 @@ Recent Changes made in the article:
             self.logger.info(f"Processing article {i}/{len(articles)}: {title}")
 
             summary = self._generate_summary(article)
-            article["llm2Summary"] = summary
+            article[self.config.SmryKey] = summary
 
             if summary == "NULL":
                 failed_summaries += 1
@@ -241,18 +210,3 @@ Recent Changes made in the article:
         except Exception as e:
             self.logger.error(f"Pipeline failed: {e}")
             sys.exit(1)
-
-
-def main():
-    """Main entry point for the application."""
-    try:
-        config = Config()
-        summarizer = ArticleSummarizer(config)
-        summarizer.run()
-    except Exception as e:
-        logging.error(f"Application failed to start: {e}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
