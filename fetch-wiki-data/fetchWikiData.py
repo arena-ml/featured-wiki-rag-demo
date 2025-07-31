@@ -107,8 +107,10 @@ class ArticlesWithRecentChanges:
         self.hours = config[CONST_CUT_OFF_WINDOW_KEY]
         trigger_time = self.parse_datetime_from_json(CONST_TIME_TRIGGER_ARTIFACT)
         if trigger_time is None:
-            trigger_time = datetime.now().astimezone()
+            trigger_time = datetime.now().astimezone(timezone.utc)
             logging.debug(f"parse_datetime_from_json return NONE, using current time{trigger_time}")
+
+        # trigger time should be in utc
         self.cutoff_time = trigger_time - timedelta(hours=self.hours)
 
     @staticmethod
@@ -141,6 +143,7 @@ class ArticlesWithRecentChanges:
 
                 # Parse the datetime string
                 dt = datetime.fromisoformat(datetime_str)
+                dt = dt.astimezone(timezone.utc)
                 logging.debug("Parsed datetime from %s to %s", datetime_str,dt.strftime("%m/%d/%Y %H:%M:%S"))
                 return dt
 
@@ -557,7 +560,6 @@ class ArticlesWithRecentChanges:
         """
         Process all articleTitles and generate output using parallel processing.
         """
-        self.setup_logging()
 
         dataset = []
 
