@@ -1,5 +1,6 @@
 *.json
 *.log
+*.cpython-313.pyc
 misc/docker_vol/
 .env
 .DS_Store
