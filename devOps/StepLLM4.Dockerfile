@@ -1,6 +1,6 @@
 FROM nvidia/cuda:12.8.1-base-ubuntu24.04
 
-ARG MODEL_NAME=qwen3:4b-thinking-2507-fp16
+ARG MODEL_NAME=hf.co/unsloth/Jan-nano-128k-GGUF:BF16
 # Set environment variables for optimization
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
