@@ -1,7 +1,7 @@
 FROM nvidia/cuda:12.8.1-base-ubuntu24.04
 
 # set model name
-ARG MODEL_NAME=hf.co/lmstudio-community/DeepSeek-R1-Distill-Llama-8B-GGUF:Q8_0
+ARG MODEL_NAME=hf.co/unsloth/DeepSeek-R1-Distill-Qwen-14B-GGUF:Q8_0
 # Set environment variables for optimization
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
